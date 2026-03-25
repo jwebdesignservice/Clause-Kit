@@ -53,13 +53,13 @@ export async function GET(req: NextRequest) {
   function addPage() {
     const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
 
-    // Header bar
+    // Header bar — ClauseKit green
     page.drawRectangle({
       x: 0,
       y: PAGE_HEIGHT - HEADER_HEIGHT,
       width: PAGE_WIDTH,
       height: HEADER_HEIGHT,
-      color: rgb(0.235, 0.329, 0.875), // indigo-600
+      color: rgb(0.176, 0.263, 0.31), // #2D6A4F
     });
 
     // Logo / brand in header
