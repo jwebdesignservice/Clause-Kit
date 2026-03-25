@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import IntakeWizard, { type IntakeData } from './IntakeWizard'
 import {
   Plus,
   FileText,
@@ -20,7 +21,6 @@ import {
   Globe,
   Shield,
   ArrowRight,
-  ArrowLeft,
   Check,
   Loader2,
   Eye,
@@ -33,12 +33,12 @@ import {
   ChevronDown,
   Zap,
   Star,
-  AlertCircle,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help'
+// Step 1 = choose type, 2 = intake wizard, 3 = loading, 4 = preview
 type Step = 1 | 2 | 3 | 4
 
 interface ContractType {
@@ -46,14 +46,6 @@ interface ContractType {
   title: string
   description: string
   Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
-}
-
-interface FormData {
-  description: string
-  party1: string
-  party2: string
-  value: string
-  governingLaw: string
 }
 
 interface SavedContract {
@@ -171,13 +163,13 @@ export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [step, setStep] = useState<Step>(1)
   const [selectedType, setSelectedType] = useState<ContractType | null>(null)
-  const [formData, setFormData] = useState<FormData>({
-    description: '', party1: '', party2: '', value: '', governingLaw: 'England & Wales',
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_intakeData, setIntakeData] = useState<IntakeData | null>(null)
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [contractId, setContractId] = useState<string | null>(null)
   const [contractContent, setContractContent] = useState<string | null>(null)
   const [contractTitle, setContractTitle] = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -205,8 +197,9 @@ export default function AppDashboard() {
     setActiveTab('new-contract')
   }
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (intake: IntakeData) => {
     if (!selectedType) return
+    setIntakeData(intake)
     setError(null)
     setLoadingMsg(0)
     setStep(3)
@@ -216,13 +209,7 @@ export default function AppDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contractType: selectedType.id,
-          customDescription: formData.description,
-          fields: {
-            party1Name: formData.party1,
-            party2Name: formData.party2,
-            value: formData.value,
-            governingLaw: formData.governingLaw,
-          },
+          fields: intake,
         }),
       })
       if (!res.ok) {
@@ -243,8 +230,8 @@ export default function AppDashboard() {
         title: data.title ?? selectedType.title,
         typeId: selectedType.id,
         typeName: selectedType.title,
-        party1: formData.party1,
-        party2: formData.party2,
+        party1: intake.yourName ?? '',
+        party2: intake.theirName ?? '',
         status: 'generated',
         createdAt: new Date().toISOString(),
       }
@@ -271,7 +258,7 @@ export default function AppDashboard() {
   const handleReset = () => {
     setStep(1)
     setSelectedType(null)
-    setFormData({ description: '', party1: '', party2: '', value: '', governingLaw: 'England & Wales' })
+    setIntakeData(null)
     setContractId(null)
     setContractContent(null)
     setContractTitle(null)
@@ -539,89 +526,14 @@ export default function AppDashboard() {
                   </div>
                 )}
 
-                {/* Step 2: Details */}
+                {/* Step 2: Intake Wizard */}
                 {step === 2 && selectedType && (
-                  <div className="max-w-2xl">
-                    <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
-                      <ArrowLeft className="w-4 h-4" /> Back
-                    </button>
-
-                    <div className="mb-6">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold mb-3" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
-                        <selectedType.Icon className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
-                        {selectedType.title}
-                      </div>
-                      <h1 className="font-display text-2xl font-bold mb-1" style={{ color: '#1B4332' }}>Tell us about your contract</h1>
-                      <p className="text-sm" style={{ color: '#6B7280' }}>Describe your situation in plain English &mdash; no legal knowledge needed.</p>
-                    </div>
-
-                    {error && (
-                      <div className="mb-4 flex items-start gap-3 px-4 py-3 text-sm border" style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        {error}
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B4332' }}>
-                          Describe your situation <span style={{ color: '#EF4444' }}>*</span>
-                        </label>
-                        <textarea
-                          value={formData.description}
-                          onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
-                          rows={5}
-                          className="w-full border px-4 py-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
-                          style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}
-                          placeholder="I am a web designer based in London. My client is a restaurant group. Fixed fee of £4,500, 6-week timeline. I need protection against scope creep and want IP to transfer only on full payment."
-                        />
-                        <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>The more detail you provide, the better your contract will be.</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { key: 'party1', label: 'Your name / company', placeholder: 'e.g. Jane Smith / Acme Ltd' },
-                          { key: 'party2', label: 'Client / other party', placeholder: 'e.g. Restaurant Group Ltd' },
-                          { key: 'value', label: 'Contract value (optional)', placeholder: 'e.g. £4,500 fixed fee' },
-                        ].map((field) => (
-                          <div key={field.key}>
-                            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B4332' }}>{field.label}</label>
-                            <input
-                              type="text"
-                              value={formData[field.key as keyof FormData]}
-                              onChange={(e) => setFormData((f) => ({ ...f, [field.key]: e.target.value }))}
-                              className="w-full border px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
-                              style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}
-                              placeholder={field.placeholder}
-                            />
-                          </div>
-                        ))}
-                        <div>
-                          <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B4332' }}>Governing law</label>
-                          <select
-                            value={formData.governingLaw}
-                            onChange={(e) => setFormData((f) => ({ ...f, governingLaw: e.target.value }))}
-                            className="w-full border px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
-                            style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}
-                          >
-                            <option>England &amp; Wales</option>
-                            <option>Scotland</option>
-                            <option>Northern Ireland</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={handleGenerate}
-                        disabled={!formData.description.trim()}
-                        className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: '#2D6A4F' }}
-                      >
-                        Generate Contract <ArrowRight className="w-4 h-4" />
-                      </button>
-                      <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>Free to generate &middot; Pay &pound;7 to download PDF + Word</p>
-                    </div>
-                  </div>
+                  <IntakeWizard
+                    contractTypeId={selectedType.id}
+                    contractTypeTitle={selectedType.title}
+                    onComplete={handleGenerate}
+                    onBack={() => setStep(1)}
+                  />
                 )}
 
                 {/* Step 3: Loading */}
