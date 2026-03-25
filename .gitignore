@@ -36,3 +36,5 @@ next-env.d.ts
 
 # payment store (local only)
 .payment-store.json
+
+.vercel
