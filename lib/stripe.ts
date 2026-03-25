@@ -1,0 +1,95 @@
+import Stripe from "stripe";
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+  apiVersion: "2026-02-25.clover",
+});
+
+export const STRIPE_PRICES = {
+  perDoc: process.env.STRIPE_PRICE_ID_PER_DOC || "",
+  subscription: process.env.STRIPE_PRICE_ID_SUBSCRIPTION || "",
+};
+
+export async function getOrCreateCustomer(email: string): Promise<string> {
+  const existing = await stripe.customers.list({ email, limit: 1 });
+  if (existing.data.length > 0) {
+    return existing.data[0].id;
+  }
+  const customer = await stripe.customers.create({ email });
+  return customer.id;
+}
+
+export async function getSubscriptionStatus(
+  customerId: string
+): Promise<{ isActive: boolean; subscriptionId?: string; currentPeriodEnd?: number }> {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "active",
+    limit: 1,
+  });
+
+  if (subscriptions.data.length > 0) {
+    const sub = subscriptions.data[0];
+    return {
+      isActive: true,
+      subscriptionId: sub.id,
+      currentPeriodEnd: (sub as unknown as { current_period_end: number }).current_period_end,
+    };
+  }
+
+  return { isActive: false };
+}
+
+export async function createSubscriptionCheckout(
+  customerId: string,
+  successUrl: string,
+  cancelUrl: string
+): Promise<string> {
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    line_items: [
+      {
+        price: STRIPE_PRICES.subscription,
+        quantity: 1,
+      },
+    ],
+    mode: "subscription",
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    currency: "gbp",
+  });
+
+  return session.url!;
+}
+
+export async function createPerDocCheckout(
+  customerId: string,
+  successUrl: string,
+  cancelUrl: string
+): Promise<string> {
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    line_items: [
+      {
+        price: STRIPE_PRICES.perDoc,
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    currency: "gbp",
+  });
+
+  return session.url!;
+}
+
+export async function createCustomerPortalSession(
+  customerId: string,
+  returnUrl: string
+): Promise<string> {
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
+  return session.url;
+}
