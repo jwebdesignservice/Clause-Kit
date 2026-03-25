@@ -1,377 +1,582 @@
 'use client'
 
-import { motion, useInView } from 'framer-motion'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
 import Link from 'next/link'
 import { useRef, useState } from 'react'
 import {
   Check,
   X,
   ArrowRight,
+  ChevronDown,
   Briefcase,
   Users,
+  Lock,
   RotateCcw,
   Wrench,
   ClipboardList,
   Globe,
   FileText,
   Menu,
-  ChevronRight,
-  Zap,
   Shield,
-  Clock,
+  Zap,
   Star,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// ── Animation variants ─────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] } },
 }
-
 const stagger = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
 }
 
-function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
+function Section({ children, className = '', id, style }: { children: React.ReactNode; className?: string; id?: string; style?: React.CSSProperties }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
   return (
-    <motion.section
-      ref={ref}
-      id={id}
-      variants={stagger}
-      initial="hidden"
-      animate={inView ? 'visible' : 'hidden'}
-      className={className}
-    >
+    <motion.section ref={ref} id={id} variants={stagger} initial="hidden" animate={inView ? 'visible' : 'hidden'} className={className} style={style}>
       {children}
     </motion.section>
   )
 }
 
-const contractTypes = [
-  { icon: Briefcase, title: 'Freelance Agreement', desc: 'Protect your work and get paid on time with clear terms.' },
-  { icon: Users, title: 'NDA', desc: 'Mutual and one-way non-disclosure agreements in minutes.' },
-  { icon: RotateCcw, title: 'Retainer Agreement', desc: 'Lock in recurring clients with clear ongoing terms.' },
-  { icon: Wrench, title: 'Subcontractor Agreement', desc: 'Bring in help safely — define scope, IP, and payment.' },
-  { icon: ClipboardList, title: 'Client Service Agreement', desc: 'Define deliverables, timelines, and payment cleanly.' },
-  { icon: Globe, title: 'Website T&Cs', desc: 'GDPR-ready terms compliant with UK consumer law.' },
-  { icon: FileText, title: 'Late Payment Letter', desc: 'Formally chase overdue invoices with legal weight.' },
-  { icon: Shield, title: 'Employment Offer Letter', desc: 'Compliant UK offer letters for new hires.' },
+// ── Data ───────────────────────────────────────────────────────────────────
+
+const CONTRACT_TYPES = [
+  { Icon: Briefcase, title: 'Freelance / Project Agreement', desc: 'Scope, payment, IP ownership, revision limits \u2014 everything you need.' },
+  { Icon: Users, title: 'NDA (Mutual)', desc: 'Both parties protect each other\u2019s confidential information.' },
+  { Icon: Lock, title: 'NDA (One-Way)', desc: 'You share; they sign. Airtight confidentiality clause.' },
+  { Icon: RotateCcw, title: 'Retainer Agreement', desc: 'Monthly fee, scope of work, termination terms \u2014 ongoing clients sorted.' },
+  { Icon: Wrench, title: 'Subcontractor Agreement', desc: 'Bring in a third party without exposing yourself.' },
+  { Icon: ClipboardList, title: 'Client Service Agreement', desc: 'General terms for delivering services \u2014 works across industries.' },
+  { Icon: Globe, title: 'Website Terms & Conditions', desc: 'GDPR-compliant T&Cs, privacy policy and acceptable use.' },
+  { Icon: Shield, title: 'Employment Offer Letter', desc: 'Role, salary, start date, probation period \u2014 offer letters done right.' },
 ]
 
-const problems = [
+const COMPARISON_ROWS = [
+  { feature: 'Cost per contract', ck: '\u00A37', sol: '\u00A3150\u2013\u00A3500', tmpl: 'Free (but generic)', ckTick: null, solTick: null, tmplTick: null },
+  { feature: 'Time to receive', ck: '2 minutes', sol: '2\u20135 days', tmpl: 'Instant', ckTick: null, solTick: null, tmplTick: null },
+  { feature: 'Bespoke to your situation', ck: null, sol: null, tmpl: null, ckTick: true, solTick: true, tmplTick: false },
+  { feature: 'UK law compliant', ck: null, sol: null, tmpl: null, ckTick: true, solTick: true, tmplTick: false },
+  { feature: 'IR35 aware', ck: null, sol: null, tmpl: null, ckTick: true, solTick: false, tmplTick: false },
+  { feature: 'GDPR data clause', ck: null, sol: null, tmpl: null, ckTick: true, solTick: false, tmplTick: false },
+  { feature: 'IP ownership clause', ck: null, sol: null, tmpl: null, ckTick: true, solTick: true, tmplTick: false },
+  { feature: 'Late payment protection', ck: null, sol: null, tmpl: null, ckTick: true, solTick: false, tmplTick: false },
+  { feature: 'Available 24/7', ck: null, sol: null, tmpl: null, ckTick: true, solTick: false, tmplTick: true },
+  { feature: 'No account needed', ck: null, sol: null, tmpl: null, ckTick: true, solTick: false, tmplTick: false },
+]
+
+const FAQS = [
   {
-    icon: Clock,
-    title: 'Solicitors charge £200–£400/hr',
-    desc: 'A simple NDA can cost £300–£800 when a solicitor drafts it. That\'s money small businesses simply don\'t have.',
+    q: 'Is this real legal advice?',
+    a: 'ClauseKit generates AI-drafted contracts that have been reviewed by a qualified UK solicitor. They are not a substitute for personalised legal advice, but they are significantly more robust than generic templates and are drafted under UK law.',
   },
   {
-    icon: FileText,
-    title: 'Free templates are risky',
-    desc: 'Generic templates from the internet are often out of date, wrong for UK law, or missing critical clauses that protect you.',
+    q: 'What makes ClauseKit different to free template sites?',
+    a: 'Free templates are generic. ClauseKit generates a bespoke document based on your specific situation \u2014 your client\u2019s name, the exact work, your payment terms, and the specific protections you need. No template does this.',
   },
   {
-    icon: Zap,
-    title: 'You need it now, not next week',
-    desc: 'Waiting days for a solicitor to respond means missed deals, delayed hires, and lost revenue. Speed matters.',
+    q: 'How does the payment work?',
+    a: 'Generating a contract is completely free. You only pay \u00A37 when you want to download the full PDF or Word version. No subscription needed unless you want unlimited downloads.',
+  },
+  {
+    q: 'Is my data secure?',
+    a: 'We don\u2019t store your contract content after generation. Your information is processed by OpenAI\u2019s GPT-4o and immediately discarded. We never share your data with third parties.',
+  },
+  {
+    q: 'Which law applies to the contracts?',
+    a: 'All contracts are drafted under English & Welsh law by default. They include relevant UK legislation including the Late Payment of Commercial Debts Act 1998 and are IR35 aware.',
+  },
+  {
+    q: 'What if I need a contract type that isn\u2019t listed?',
+    a: 'Message us on WhatsApp. We add new contract types regularly based on user requests, and we can usually help you adapt an existing type to your needs.',
   },
 ]
 
-const steps = [
-  { step: '01', title: 'Choose your contract', desc: 'Pick from 8 contract types built for UK freelancers and small businesses.' },
-  { step: '02', title: 'Answer plain-English questions', desc: 'No legal jargon. Our smart form asks only what it needs, in plain English.' },
-  { step: '03', title: 'Download your contract', desc: 'Get a professionally drafted, UK-compliant contract in under 5 minutes.' },
-]
+const MARQUEE_TEXT = 'Freelancers \u00B7 Web Agencies \u00B7 Consultants \u00B7 Tradespeople \u00B7 Care Providers \u00B7 Small Businesses \u00B7 Designers \u00B7 Developers \u00B7 Recruiters \u00B7 '
+const PROOF_TEXT = '2,000+ contracts generated \u00B7 Trusted by UK freelancers \u00B7 Reviewed by UK solicitors \u00B7 GPT-4o powered \u00B7 IR35 aware \u00B7 GDPR compliant \u00B7 English & Welsh law \u00B7 '
 
-const testimonials = [
-  {
-    name: 'Sarah M.',
-    role: 'Freelance Designer, London',
-    quote: 'Saved me £400 on my first NDA alone. Took 4 minutes. I\'ve used it every project since.',
-  },
-  {
-    name: 'Tom K.',
-    role: 'Web Agency Owner, Manchester',
-    quote: 'Our standard client contract used to take a week to get from our solicitor. Now it\'s done before the sales call ends.',
-  },
-  {
-    name: 'Priya R.',
-    role: 'Consultant, Birmingham',
-    quote: 'The questions are genuinely plain English. It feels like talking to a knowledgeable friend, not filling in a legal form.',
-  },
-]
+// ── WhatsApp SVG ───────────────────────────────────────────────────────────
+
+function WhatsAppIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  )
+}
+
+// ── Marquee ────────────────────────────────────────────────────────────────
+
+function Marquee({ text, bgClass, textClass }: { text: string; bgClass: string; textClass: string }) {
+  const repeated = text.repeat(4)
+  return (
+    <div className={cn('overflow-hidden py-3', bgClass)}>
+      <motion.div
+        className="flex whitespace-nowrap"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+      >
+        <span className={cn('text-sm font-medium pr-4', textClass)}>{repeated}</span>
+        <span className={cn('text-sm font-medium pr-4', textClass)}>{repeated}</span>
+      </motion.div>
+    </div>
+  )
+}
+
+// ── FAQ Item ───────────────────────────────────────────────────────────────
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b last:border-b-0" style={{ borderColor: '#E5E5E2' }}>
+      <button
+        className="w-full flex items-center justify-between py-4 text-left"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold pr-4" style={{ color: '#1B4332' }}>{q}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: '#6B7280' }} />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <p className="pb-4 text-sm leading-relaxed" style={{ color: '#6B7280' }}>{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] text-gray-900">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAF8' }}>
 
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#FAFAF8]/95 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#2D6A4F' }}>
-              <FileText className="w-4 h-4 text-white" />
+      {/* ── NAV ── */}
+      <nav className="sticky top-0 z-50 bg-white border-b" style={{ borderColor: '#E5E5E2' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-7 h-7 flex items-center justify-center" style={{ backgroundColor: '#2D6A4F' }}>
+              <FileText className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-lg" style={{ color: '#1B4332' }}>ClauseKit</span>
+            <span className="font-bold text-sm" style={{ color: '#1B4332' }}>ClauseKit</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How it works</Link>
-            <Link href="#contracts" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Contracts</Link>
-            <Link href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</Link>
+
+          <div className="hidden md:flex items-center gap-7">
+            <Link href="#how-it-works" className="text-sm transition-colors" style={{ color: '#6B7280' }}>How it works</Link>
+            <Link href="#contracts" className="text-sm transition-colors" style={{ color: '#6B7280' }}>Contract types</Link>
+            <Link href="#pricing" className="text-sm transition-colors" style={{ color: '#6B7280' }}>Pricing</Link>
+            <Link href="#faq" className="text-sm transition-colors" style={{ color: '#6B7280' }}>FAQ</Link>
+          </div>
+
+          <div className="hidden md:flex items-center gap-3">
+            <a
+              href="https://wa.me/447700900000"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-colors hover:bg-[#D8F3DC]"
+              style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+            >
+              <WhatsAppIcon className="w-4 h-4" />
+              WhatsApp
+            </a>
             <Link
               href="/app"
-              className="text-sm font-semibold text-white px-5 py-2.5 rounded-lg transition-opacity hover:opacity-90"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#2D6A4F' }}
             >
-              Launch App →
+              Launch App
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <button
-            className="md:hidden p-2 rounded-lg text-gray-600"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <Menu className="w-5 h-5" />
+
+          <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+            <Menu className="w-5 h-5" style={{ color: '#1B4332' }} />
           </button>
         </div>
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-[#FAFAF8] px-4 pb-4 pt-2 flex flex-col gap-3">
-            <Link href="#how-it-works" className="text-sm text-gray-600 py-1">How it works</Link>
-            <Link href="#contracts" className="text-sm text-gray-600 py-1">Contracts</Link>
-            <Link href="#pricing" className="text-sm text-gray-600 py-1">Pricing</Link>
-            <Link href="/app" className="text-sm font-semibold text-white px-4 py-2 rounded-lg text-center" style={{ backgroundColor: '#2D6A4F' }}>
-              Launch App →
-            </Link>
+
+        {mobileOpen && (
+          <div className="md:hidden border-t px-4 pb-4 pt-2 bg-white flex flex-col gap-2" style={{ borderColor: '#E5E5E2' }}>
+            <Link href="#how-it-works" className="py-2 text-sm" style={{ color: '#6B7280' }} onClick={() => setMobileOpen(false)}>How it works</Link>
+            <Link href="#contracts" className="py-2 text-sm" style={{ color: '#6B7280' }} onClick={() => setMobileOpen(false)}>Contract types</Link>
+            <Link href="#pricing" className="py-2 text-sm" style={{ color: '#6B7280' }} onClick={() => setMobileOpen(false)}>Pricing</Link>
+            <Link href="#faq" className="py-2 text-sm" style={{ color: '#6B7280' }} onClick={() => setMobileOpen(false)}>FAQ</Link>
+            <div className="flex gap-2 pt-2">
+              <a href="https://wa.me/447700900000" target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium border" style={{ borderColor: '#2D6A4F', color: '#2D6A4F' }}>
+                <WhatsAppIcon className="w-4 h-4" />WhatsApp
+              </a>
+              <Link href="/app" className="flex-1 flex items-center justify-center gap-1 py-2 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
+                Launch App <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         )}
       </nav>
 
-      {/* ── FUNNEL STEP 1: Hero — grab attention, state the value ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center">
+      {/* ── HERO ── */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 text-center">
         <motion.div variants={stagger} initial="hidden" animate="visible">
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
-            <Shield className="w-3.5 h-3.5" />
-            UK-compliant contracts in minutes
+          <motion.div
+            variants={fadeUp}
+            className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium mb-8"
+            style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}
+          >
+            <Shield className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
+            GPT-4o Powered &middot; UK Law &middot; Solicitor-Reviewed
           </motion.div>
+
           <motion.h1
             variants={fadeUp}
             className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6 max-w-4xl mx-auto"
             style={{ color: '#1B4332' }}
           >
-            Legal contracts,{' '}
-            <em className="italic font-display" style={{ color: '#2D6A4F' }}>without</em>
-            <br className="hidden sm:block" /> the legal bill
+            The only UK contract builder<br />
+            <em className="italic font-display" style={{ color: '#2D6A4F' }}>you&rsquo;ll ever need.</em>
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-            ClauseKit generates professionally drafted, UK-compliant contracts in under 5 minutes. Built for freelancers and small businesses — not law firms.
+
+          <motion.p variants={fadeUp} className="text-xl max-w-2xl mx-auto mb-10" style={{ color: '#6B7280' }}>
+            Describe your situation in plain English. ClauseKit drafts a bespoke, UK-law contract in under 2&nbsp;minutes. Pay &pound;7 to download. No solicitor needed.
           </motion.p>
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Link
               href="/app"
-              className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#2D6A4F' }}
             >
-              Generate your first contract
+              Launch App
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link
-              href="#how-it-works"
-              className="inline-flex items-center gap-2 font-medium px-8 py-4 rounded-xl text-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+            <a
+              href="https://wa.me/447700900000"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold border transition-colors hover:bg-[#D8F3DC]"
+              style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
             >
-              See how it works
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+              <WhatsAppIcon className="w-5 h-5" />
+              Chat on WhatsApp
+            </a>
           </motion.div>
-          <motion.p variants={fadeUp} className="mt-6 text-sm text-gray-400">
-            No signup required · Pay only when you download · From £7 per contract
+
+          <motion.p variants={fadeUp} className="text-sm" style={{ color: '#9CA3AF' }}>
+            No account needed &middot; Generate free &middot; Pay only to download
           </motion.p>
         </motion.div>
       </section>
 
-      {/* ── FUNNEL STEP 2: Trust strip — social proof above the fold ── */}
-      <div className="border-y border-gray-100 bg-white py-5">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-center gap-8 text-sm text-gray-500">
-          <span className="flex items-center gap-2">
-            <Check className="w-4 h-4" style={{ color: '#2D6A4F' }} />
-            Written for UK law
-          </span>
-          <span className="flex items-center gap-2">
-            <Check className="w-4 h-4" style={{ color: '#2D6A4F' }} />
-            PDF &amp; Word download
-          </span>
-          <span className="flex items-center gap-2">
-            <Check className="w-4 h-4" style={{ color: '#2D6A4F' }} />
-            No subscription needed
-          </span>
-          <span className="flex items-center gap-2">
-            <Check className="w-4 h-4" style={{ color: '#2D6A4F' }} />
-            Ready in under 5 minutes
-          </span>
-          <span className="flex items-center gap-2">
-            <Star className="w-4 h-4 fill-current" style={{ color: '#F59E0B' }} />
-            Trusted by 500+ freelancers
-          </span>
-        </div>
-      </div>
+      {/* ── MARQUEE: Who it's for ── */}
+      <Marquee text={MARQUEE_TEXT} bgClass="bg-white border-y" textClass="text-[#6B7280]" />
 
-      {/* ── FUNNEL STEP 3: Problem — make them feel the pain ── */}
-      <Section className="py-20">
+      {/* ── SOCIAL PROOF STRIP ── */}
+      <Marquee text={PROOF_TEXT} bgClass="bg-[#2D6A4F]" textClass="text-white opacity-90" />
+
+      {/* ── PAIN ── */}
+      <Section id="problem" className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>
-              Getting legal protection{' '}
-              <em className="italic font-display" style={{ color: '#2D6A4F' }}>shouldn&rsquo;t</em>{' '}
-              cost a fortune
-            </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              UK freelancers and small businesses are left choosing between expensive solicitors and risky free templates.
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Problem</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>Sound familiar?</h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            {[
+              {
+                colour: '#EF4444',
+                label: '\u00A3300/hr',
+                title: 'Solicitors charge \u00A3150\u2013\u00A3500 for a basic contract',
+                body: 'And then they take 3 days to deliver it. You needed it yesterday.',
+              },
+              {
+                colour: '#F59E0B',
+                label: 'Generic',
+                title: 'Free templates don\u2019t cover your situation',
+                body: 'They\u2019re generic. They miss IR35 clauses, UK payment terms, and the specific protection you actually need.',
+              },
+              {
+                colour: '#EF4444',
+                label: 'Risk',
+                title: 'Working without a contract is a liability',
+                body: 'One bad client can cost you thousands. A proper contract takes that risk off the table permanently.',
+              },
+            ].map((card) => (
+              <motion.div
+                key={card.title}
+                variants={fadeUp}
+                className="bg-white border p-8"
+                style={{ borderColor: '#E5E5E2' }}
+              >
+                <div
+                  className="inline-flex items-center px-3 py-1 text-xs font-bold text-white mb-4"
+                  style={{ backgroundColor: card.colour }}
+                >
+                  {card.label}
+                </div>
+                <h3 className="font-semibold text-base mb-3 leading-snug" style={{ color: '#1B4332' }}>{card.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>{card.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            variants={fadeUp}
+            className="border p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
+            style={{ backgroundColor: '#D8F3DC', borderColor: '#52B788' }}
+          >
+            <p className="font-semibold" style={{ color: '#1B4332' }}>
+              ClauseKit solves all three. In under 2 minutes. For &pound;7.
             </p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {problems.map((p) => (
-              <motion.div key={p.title} variants={fadeUp} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: '#D8F3DC' }}>
-                  <p.icon className="w-6 h-6" style={{ color: '#2D6A4F' }} />
-                </div>
-                <h3 className="font-semibold text-lg mb-3" style={{ color: '#1B4332' }}>{p.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{p.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* ── FUNNEL STEP 4: Solution — how it works ── */}
-      <Section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>How ClauseKit works</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Three steps. Zero jargon. Signed-ready contract.</p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-10">
-            {steps.map((s, i) => (
-              <motion.div key={s.step} variants={fadeUp} className="text-center relative">
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px" style={{ backgroundColor: '#D8F3DC' }} />
-                )}
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white font-display" style={{ backgroundColor: '#2D6A4F' }}>
-                  {s.step}
-                </div>
-                <h3 className="font-semibold text-xl mb-3" style={{ color: '#1B4332' }}>{s.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{s.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-          {/* Mid-funnel CTA */}
-          <motion.div variants={fadeUp} className="text-center mt-14">
             <Link
               href="/app"
-              className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-opacity hover:opacity-90"
+              className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#2D6A4F' }}
             >
-              Try it now — from £7
-              <ArrowRight className="w-5 h-5" />
+              Launch App <ArrowRight className="w-4 h-4" />
             </Link>
           </motion.div>
         </div>
       </Section>
 
-      {/* ── FUNNEL STEP 5: Contract types — product depth ── */}
-      <Section id="contracts" className="py-20">
+      {/* ── HOW IT WORKS ── */}
+      <Section id="how-it-works" className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>
-              8 contract types, <em className="italic font-display" style={{ color: '#2D6A4F' }}>all UK-ready</em>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>How It Works</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              From blank page to signed contract in 3 steps
             </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Every contract ClauseKit generates is tailored to your answers and compliant with current UK law.</p>
           </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {contractTypes.map((c) => (
-              <motion.div
-                key={c.title}
-                variants={fadeUp}
-                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-[#52B788] hover:shadow-md transition-all cursor-pointer group"
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}>
-                  <c.icon className="w-5 h-5" style={{ color: '#2D6A4F' }} />
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {[
+              {
+                n: '01',
+                title: 'Describe your situation',
+                body: 'No legal knowledge needed. Tell us who\u2019s involved, what the work is, and what you need protected.',
+              },
+              {
+                n: '02',
+                title: 'AI drafts your contract',
+                body: 'GPT-4o generates a bespoke UK-law document with all the right clauses for your exact situation.',
+              },
+              {
+                n: '03',
+                title: 'Download and use',
+                body: 'Pay \u00A37 to unlock the full contract as PDF or Word. Ready to send to your client immediately.',
+              },
+            ].map((step, i) => (
+              <motion.div key={step.n} variants={fadeUp} className="text-center relative">
+                {i < 2 && (
+                  <div className="hidden md:block absolute top-6 left-[55%] w-[90%] h-px" style={{ backgroundColor: '#D8F3DC' }} />
+                )}
+                <div
+                  className="w-12 h-12 flex items-center justify-center mx-auto mb-5 text-lg font-bold text-white font-display"
+                  style={{ backgroundColor: '#2D6A4F' }}
+                >
+                  {step.n}
                 </div>
-                <h3 className="font-semibold mb-2" style={{ color: '#1B4332' }}>{c.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{c.desc}</p>
+                <h3 className="font-semibold text-base mb-2" style={{ color: '#1B4332' }}>{step.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>{step.body}</p>
               </motion.div>
             ))}
           </div>
+
+          <motion.div variants={fadeUp} className="text-center mt-14">
+            <p className="text-sm mb-4" style={{ color: '#6B7280' }}>Try it yourself &mdash; free to generate</p>
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#2D6A4F' }}
+            >
+              Launch App <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
         </div>
       </Section>
 
-      {/* ── FUNNEL STEP 6: Comparison — remove objections ── */}
-      <Section className="py-20 bg-white">
+      {/* ── COMPARISON TABLE ── */}
+      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>How we compare</h2>
-            <p className="text-gray-500 text-lg">ClauseKit vs the alternatives</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Comparison</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              ClauseKit vs your other options
+            </h2>
           </motion.div>
-          <motion.div variants={fadeUp} className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm">
-            <table className="w-full text-sm">
+
+          <motion.div variants={fadeUp} className="overflow-x-auto border" style={{ borderColor: '#E5E5E2' }}>
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
-                <tr style={{ backgroundColor: '#2D6A4F' }}>
-                  <th className="text-left px-6 py-4 text-white font-semibold">Feature</th>
-                  <th className="px-6 py-4 text-white font-semibold">ClauseKit</th>
-                  <th className="px-6 py-4 text-white font-semibold">Solicitor</th>
-                  <th className="px-6 py-4 text-white font-semibold">Free Templates</th>
+                <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
+                  <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#FAFAF8' }}>
+                    Feature
+                  </th>
+                  <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
+                    ClauseKit
+                    <span
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 text-white whitespace-nowrap"
+                      style={{ backgroundColor: '#2D6A4F' }}
+                    >
+                      Best option
+                    </span>
+                  </th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Solicitor</th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Template Website</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  ['UK-compliant drafting', true, true, false],
-                  ['Ready in under 5 minutes', true, false, true],
-                  ['Costs under £20', true, false, true],
-                  ['Plain-English questions', true, false, false],
-                  ['Tailored to your situation', true, true, false],
-                  ['Up-to-date with UK law', true, true, false],
-                  ['Solicitor review available', false, true, false],
-                ].map(([feature, ck, sol, tmpl], i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-[#FAFAF8]' : 'bg-white'}>
-                    <td className="px-6 py-4 font-medium text-gray-700">{feature as string}</td>
-                    <td className="px-6 py-4 text-center">
-                      {ck ? <Check className="w-5 h-5 inline" style={{ color: '#2D6A4F' }} /> : <X className="w-5 h-5 inline text-gray-300" />}
+                {COMPARISON_ROWS.map((row, i) => (
+                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : ''} style={{ backgroundColor: i % 2 !== 0 ? '#FAFAF8' : undefined }}>
+                    <td className="px-5 py-3.5 font-medium" style={{ color: '#374151' }}>{row.feature}</td>
+                    <td className="px-5 py-3.5 text-center" style={{ backgroundColor: i % 2 === 0 ? '#F0FAF4' : '#EDFAF2' }}>
+                      {row.ck !== null ? (
+                        <span className="font-semibold" style={{ color: '#1B4332' }}>{row.ck}</span>
+                      ) : row.ckTick ? (
+                        <Check className="w-4 h-4 inline" style={{ color: '#2D6A4F' }} strokeWidth={3} />
+                      ) : (
+                        <X className="w-4 h-4 inline text-red-400" />
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {sol ? <Check className="w-5 h-5 inline" style={{ color: '#2D6A4F' }} /> : <X className="w-5 h-5 inline text-gray-300" />}
+                    <td className="px-5 py-3.5 text-center" style={{ color: '#6B7280' }}>
+                      {row.sol !== null ? (
+                        row.sol
+                      ) : row.solTick ? (
+                        <Check className="w-4 h-4 inline" style={{ color: '#2D6A4F' }} strokeWidth={3} />
+                      ) : (
+                        <X className="w-4 h-4 inline text-red-400" />
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {tmpl ? <Check className="w-5 h-5 inline" style={{ color: '#2D6A4F' }} /> : <X className="w-5 h-5 inline text-gray-300" />}
+                    <td className="px-5 py-3.5 text-center" style={{ color: '#6B7280' }}>
+                      {row.tmpl !== null ? (
+                        row.tmpl
+                      ) : row.tmplTick ? (
+                        <Check className="w-4 h-4 inline" style={{ color: '#2D6A4F' }} strokeWidth={3} />
+                      ) : (
+                        <X className="w-4 h-4 inline text-red-400" />
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </motion.div>
+
+          <motion.p variants={fadeUp} className="text-center text-sm mt-6" style={{ color: '#6B7280' }}>
+            ClauseKit is the only option that&rsquo;s bespoke, instant, affordable, and UK-law compliant.
+          </motion.p>
         </div>
       </Section>
 
-      {/* ── FUNNEL STEP 7: Social proof — testimonials ── */}
-      <Section className="py-20">
+      {/* ── CONTRACT TYPES ── */}
+      <Section id="contracts" className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>
-              What UK freelancers say
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>What We Cover</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              8 contract types. Every situation covered.
             </h2>
           </motion.div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((t) => (
-              <motion.div key={t.name} variants={fadeUp} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                <div className="flex gap-1 mb-4">
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {CONTRACT_TYPES.map((c) => (
+              <motion.div
+                key={c.title}
+                variants={fadeUp}
+                className="group border p-5 flex flex-col hover:border-[#2D6A4F] hover:shadow-sm transition-all cursor-pointer"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}
+              >
+                <Link href="/app" className="flex flex-col h-full">
+                  <div className="w-9 h-9 flex items-center justify-center mb-3 flex-shrink-0" style={{ backgroundColor: '#D8F3DC' }}>
+                    <c.Icon className="w-4 h-4" style={{ color: '#2D6A4F' }} />
+                  </div>
+                  <p className="text-sm font-semibold mb-1 leading-snug" style={{ color: '#111827' }}>{c.title}</p>
+                  <p className="text-xs leading-relaxed mb-3 flex-1" style={{ color: '#6B7280' }}>{c.desc}</p>
+                  <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#2D6A4F' }}>
+                    Generate <ArrowRight className="w-3 h-3" />
+                  </span>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div variants={fadeUp} className="text-center mt-10">
+            <p className="text-sm mb-3" style={{ color: '#6B7280' }}>
+              Don&rsquo;t see your contract type? Message us on WhatsApp.
+            </p>
+            <a
+              href="https://wa.me/447700900000"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border transition-colors hover:bg-[#D8F3DC]"
+              style={{ borderColor: '#2D6A4F', color: '#2D6A4F' }}
+            >
+              <WhatsAppIcon className="w-4 h-4" />
+              Chat on WhatsApp
+            </a>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* ── TRUST SIGNALS ── */}
+      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div variants={fadeUp} className="text-center mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Why Trust Us</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              Built for UK freelancers, by people who&rsquo;ve needed this
+            </h2>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
+            {[
+              { Icon: Shield, title: 'Solicitor-Reviewed', body: 'Every contract type has been reviewed by a qualified UK solicitor before it ever reaches you.' },
+              { Icon: Zap, title: 'GPT-4o Powered', body: 'The most advanced AI available. Not a template \u2014 a genuinely bespoke document, every time.' },
+              { Icon: FileText, title: 'UK Law Only', body: 'English & Welsh law, Late Payment of Commercial Debts Act 1998, IR35 awareness baked in.' },
+              { Icon: Lock, title: 'GDPR Compliant', body: 'We don\u2019t store your contract content. Generate, pay, download \u2014 that\u2019s it.' },
+            ].map((t) => (
+              <motion.div key={t.title} variants={fadeUp} className="bg-white border p-6" style={{ borderColor: '#E5E5E2' }}>
+                <div className="w-10 h-10 flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}>
+                  <t.Icon className="w-5 h-5" style={{ color: '#2D6A4F' }} />
+                </div>
+                <h3 className="font-semibold mb-2" style={{ color: '#1B4332' }}>{t.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>{t.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { quote: '\u201cI used to dread the contract conversation with new clients. ClauseKit made it something I actually look forward to.\u201d', name: 'Sarah T.', role: 'Freelance Web Designer, London' },
+              { quote: '\u201cPaid \u00A37, got a contract that my clients take seriously. A solicitor quoted me \u00A3350 for the same thing.\u201d', name: 'James M.', role: 'Digital Marketing Consultant, Manchester' },
+              { quote: '\u201cThe IR35 clause alone is worth the \u00A37. Most freelance templates don\u2019t even mention it.\u201d', name: 'Priya K.', role: 'UX Designer, Birmingham' },
+            ].map((t) => (
+              <motion.div key={t.name} variants={fadeUp} className="bg-white border p-6" style={{ borderColor: '#E5E5E2' }}>
+                <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" style={{ color: '#F59E0B' }} />
                   ))}
                 </div>
-                <p className="text-gray-700 leading-relaxed mb-6 italic">&ldquo;{t.quote}&rdquo;</p>
+                <p className="text-sm leading-relaxed italic mb-5" style={{ color: '#374151' }}>{t.quote}</p>
                 <div>
-                  <p className="font-semibold text-sm" style={{ color: '#1B4332' }}>{t.name}</p>
-                  <p className="text-gray-400 text-sm">{t.role}</p>
+                  <p className="text-sm font-semibold" style={{ color: '#1B4332' }}>{t.name}</p>
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>{t.role}</p>
                 </div>
               </motion.div>
             ))}
@@ -379,132 +584,256 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* ── FUNNEL STEP 8: Pricing — convert ── */}
+      {/* ── PRICING ── */}
       <Section id="pricing" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#1B4332' }}>Simple, honest pricing</h2>
-            <p className="text-gray-500 text-lg">No subscriptions required. Pay per document or go unlimited.</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Pricing</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              Transparent pricing. No subscriptions needed.
+            </h2>
           </motion.div>
+
           <div className="grid md:grid-cols-2 gap-8">
             {/* Pay per doc */}
-            <motion.div variants={fadeUp} className="rounded-2xl border border-gray-200 p-8 bg-[#FAFAF8]">
-              <p className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-widest">Pay as you go</p>
-              <div className="flex items-end gap-1 mb-2">
-                <span className="font-display text-6xl font-bold" style={{ color: '#1B4332' }}>£7</span>
-                <span className="text-gray-500 mb-2 text-lg">/ document</span>
+            <motion.div variants={fadeUp} className="border-2 p-8" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#9CA3AF' }}>Pay as you go</p>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="font-display text-5xl font-bold" style={{ color: '#1B4332' }}>&pound;7</span>
+                <span className="text-base" style={{ color: '#6B7280' }}>per contract</span>
               </div>
-              <p className="text-gray-500 mb-8">Generate one contract at a time. Perfect if you only need a contract occasionally.</p>
-              <ul className="space-y-3 mb-8">
-                {['Full UK-compliant contract', 'Instant PDF & Word download', 'Tailored to your answers', 'No subscription'].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm text-gray-700">
-                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#2D6A4F' }} />
-                    {f}
+              <p className="text-sm mb-6" style={{ color: '#6B7280' }}>Generate one contract at a time.</p>
+              <ul className="space-y-2.5 mb-8">
+                {['Generate completely free', 'Pay \u00A37 to unlock download', 'PDF + Word formats', 'No account needed', 'Use immediately'].map((f) => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm">
+                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} strokeWidth={3} />
+                    <span style={{ color: '#1A1A1A' }}>{f}</span>
                   </li>
                 ))}
               </ul>
               <Link
                 href="/app"
-                className="block text-center font-semibold py-3.5 rounded-xl border-2 transition-colors hover:bg-[#D8F3DC]"
-                style={{ borderColor: '#2D6A4F', color: '#2D6A4F' }}
+                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
+                style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
               >
-                Generate a contract
+                Generate a contract <ArrowRight className="w-4 h-4" />
               </Link>
             </motion.div>
 
             {/* Unlimited */}
-            <motion.div variants={fadeUp} className="rounded-2xl p-8 text-white relative overflow-hidden shadow-lg" style={{ backgroundColor: '#2D6A4F' }}>
-              <div className="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full" style={{ backgroundColor: '#52B788', color: '#1B4332' }}>
-                BEST VALUE
+            <motion.div variants={fadeUp} className="border-2 p-8 relative text-white" style={{ borderColor: '#2D6A4F', backgroundColor: '#2D6A4F' }}>
+              <div
+                className="absolute -top-3.5 left-6 px-3 py-0.5 text-xs font-bold"
+                style={{ backgroundColor: '#52B788', color: '#1B4332' }}
+              >
+                Most Popular
               </div>
-              <p className="text-sm font-semibold mb-3 uppercase tracking-widest" style={{ color: '#D8F3DC' }}>Unlimited</p>
-              <div className="flex items-end gap-1 mb-2">
-                <span className="font-display text-6xl font-bold">£19</span>
-                <span className="mb-2 text-lg" style={{ color: '#D8F3DC' }}>/ month</span>
+              <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#D8F3DC' }}>Unlimited</p>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="font-display text-5xl font-bold">&pound;19</span>
+                <span className="text-base" style={{ color: '#D8F3DC' }}>/month &mdash; cancel anytime</span>
               </div>
-              <p className="mb-8" style={{ color: '#D8F3DC' }}>Unlimited contracts for busy freelancers and growing teams.</p>
-              <ul className="space-y-3 mb-8">
-                {['Unlimited contracts', 'All 8 contract types', 'PDF & Word download', 'Cancel any time'].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm">
-                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} />
-                    {f}
+              <p className="text-sm mb-6" style={{ color: '#D8F3DC' }}>Unlimited contracts for busy freelancers and growing teams.</p>
+              <ul className="space-y-2.5 mb-8">
+                {['Unlimited contract generation', 'All 8 contract types', 'PDF + Word downloads', 'Priority generation', 'New types as added', 'Cancel anytime'].map((f) => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm">
+                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} strokeWidth={3} />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/app"
-                className="block text-center font-semibold py-3.5 rounded-xl transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#52B788', color: '#1B4332' }}
+              <button
+                className="w-full py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}
               >
-                Start unlimited plan
-              </Link>
+                Start unlimited &rarr;
+              </button>
             </motion.div>
           </div>
-          <motion.p variants={fadeUp} className="text-center text-sm text-gray-400 mt-6">
-            Secure payment via Stripe · No account required to get started
+
+          <motion.p variants={fadeUp} className="text-center text-sm mt-6" style={{ color: '#9CA3AF' }}>
+            Compare: a solicitor charges &pound;150&ndash;&pound;500 for a basic freelance contract. One ClauseKit contract pays for 3 months of the unlimited plan.
           </motion.p>
         </div>
       </Section>
 
-      {/* ── FUNNEL STEP 9: Final CTA — last push ── */}
-      <section className="py-24" style={{ backgroundColor: '#1B4332' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }}>
-            <motion.p variants={fadeUp} className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: '#52B788' }}>
-              Get started in 5 minutes
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Your first contract is{' '}
-              <em className="italic font-display" style={{ color: '#52B788' }}>5 minutes away</em>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-xl mb-10 max-w-2xl mx-auto" style={{ color: '#D8F3DC' }}>
-              Join hundreds of UK freelancers and small businesses who protect themselves with ClauseKit — without the solicitor&rsquo;s bill.
-            </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/app"
-                className="inline-flex items-center gap-2 font-semibold px-10 py-4 rounded-xl text-lg transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#52B788', color: '#1B4332' }}
-              >
-                Generate your first contract — £7
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                href="#pricing"
-                className="inline-flex items-center gap-2 font-medium px-8 py-4 rounded-xl text-lg border border-[#2D6A4F] transition-colors hover:border-[#52B788]"
-                style={{ color: '#D8F3DC' }}
-              >
-                View pricing
-              </Link>
-            </motion.div>
-            <motion.p variants={fadeUp} className="mt-6 text-sm" style={{ color: '#52B788' }}>
-              No account needed · Answer questions, download, done
-            </motion.p>
+      {/* ── WHATSAPP CTA BOX ── */}
+      <section className="py-16" style={{ backgroundColor: '#FAFAF8' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5 }}
+            className="p-10 sm:p-14 text-center text-white max-w-3xl mx-auto"
+            style={{ backgroundColor: '#1B4332' }}
+          >
+            <h2 className="font-display text-2xl sm:text-3xl font-bold mb-4">
+              Not sure which contract you need?
+            </h2>
+            <p className="text-base mb-8" style={{ color: '#D8F3DC' }}>
+              Message us on WhatsApp. We&rsquo;ll tell you exactly which contract type fits your situation.
+            </p>
+            <a
+              href="https://wa.me/447700900000"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              <WhatsAppIcon className="w-5 h-5" />
+              Chat with us on WhatsApp
+            </a>
+            <p className="mt-5 text-sm" style={{ color: '#52B788' }}>
+              &bull; Usually replies within an hour &bull; Free advice &bull; No obligation
+            </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{ backgroundColor: '#0F2B1E' }} className="py-12">
+      {/* ── FAQ ── */}
+      <Section id="faq" className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div variants={fadeUp} className="text-center mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>FAQ</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
+              Everything you need to know
+            </h2>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+            <div className="divide-y" style={{ borderColor: '#E5E5E2' }}>
+              {FAQS.map((item) => (
+                <div key={item.q} className="px-6">
+                  <FaqItem q={item.q} a={item.a} />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* ── FINAL CTA ── */}
+      <section className="py-24 text-center text-white" style={{ backgroundColor: '#2D6A4F' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5 }}
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
+        >
+          <h2 className="font-display text-4xl sm:text-5xl font-bold mb-5">
+            Your next contract is 2 minutes away
+          </h2>
+          <p className="text-xl mb-10" style={{ color: '#D8F3DC' }}>
+            No account. No solicitor. No waiting. &pound;7 and you&rsquo;re protected.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}
+            >
+              Launch App <ArrowRight className="w-5 h-5" />
+            </Link>
+            <a
+              href="https://wa.me/447700900000"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold border-2 transition-colors hover:bg-[#1B4332]"
+              style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#FFFFFF' }}
+            >
+              <WhatsAppIcon className="w-5 h-5" />
+              Chat on WhatsApp
+            </a>
+          </div>
+          <p className="text-sm" style={{ color: '#D8F3DC' }}>
+            Solicitor-reviewed &middot; GPT-4o powered &middot; UK law only
+          </p>
+        </motion.div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="py-14" style={{ backgroundColor: '#1B4332' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#2D6A4F' }}>
-                <FileText className="w-3.5 h-3.5 text-white" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 flex items-center justify-center" style={{ backgroundColor: '#2D6A4F' }}>
+                  <FileText className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="font-bold text-white">ClauseKit</span>
               </div>
-              <span className="font-bold text-white">ClauseKit</span>
+              <p className="text-sm leading-relaxed" style={{ color: '#52B788' }}>
+                AI contracts for UK freelancers & small businesses
+              </p>
             </div>
-            <div className="flex items-center gap-8 text-sm" style={{ color: '#52B788' }}>
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-              <Link href="/app" className="hover:text-white transition-colors">App</Link>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#52B788' }}>Contracts</p>
+              <ul className="space-y-2">
+                {['Freelance', 'NDA', 'Retainer', 'Subcontractor', 'Service', 'T&Cs', 'Late Payment', 'Employment'].map((t) => (
+                  <li key={t}>
+                    <Link href="/app" className="text-sm transition-colors hover:text-white" style={{ color: '#52B788' }}>{t}</Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <p className="text-sm" style={{ color: '#52B788' }}>
-              &copy; {new Date().getFullYear()} ClauseKit. Not a law firm.
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#52B788' }}>Company</p>
+              <ul className="space-y-2">
+                {[
+                  { label: 'How it works', href: '#how-it-works' },
+                  { label: 'Pricing', href: '#pricing' },
+                  { label: 'FAQ', href: '#faq' },
+                  { label: 'WhatsApp', href: 'https://wa.me/447700900000' },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-sm transition-colors hover:text-white" style={{ color: '#52B788' }}>{l.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#52B788' }}>Questions?</p>
+              <a
+                href="https://wa.me/447700900000"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#25D366' }}
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+                Chat on WhatsApp
+              </a>
+            </div>
+          </div>
+
+          <div className="border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3" style={{ borderColor: '#2D6A4F' }}>
+            <p className="text-xs" style={{ color: '#52B788' }}>
+              &copy; 2026 ClauseKit. AI-generated contracts. Not legal advice. ClauseKit Ltd.
             </p>
+            <div className="flex items-center gap-5">
+              <Link href="/privacy" className="text-xs hover:text-white transition-colors" style={{ color: '#52B788' }}>Privacy</Link>
+              <Link href="/terms" className="text-xs hover:text-white transition-colors" style={{ color: '#52B788' }}>Terms</Link>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* ── FLOATING WHATSAPP ── */}
+      <a
+        href="https://wa.me/447700900000"
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90"
+        style={{ backgroundColor: '#25D366', borderRadius: '9999px' }}
+      >
+        <WhatsAppIcon className="w-5 h-5" />
+        Chat with us
+      </a>
     </div>
   )
 }
