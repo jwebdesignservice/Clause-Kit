@@ -391,6 +391,7 @@ export default function HomePage() {
             No account needed &middot; Generate free &middot; Pay only to download
           </motion.p>
         </motion.div>
+        </div>
       </section>
 
       {/* ── MARQUEE: Who it's for ── */}
@@ -400,8 +401,9 @@ export default function HomePage() {
       <Marquee text={PROOF_TEXT} bgClass="bg-[#2D6A4F]" textClass="text-white opacity-90" />
 
       {/* ── PAIN ── */}
-      <Section id="problem" className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section id="problem" className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+        <ProblemBg />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Problem</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>Sound familiar?</h2>
@@ -466,8 +468,9 @@ export default function HomePage() {
       </Section>
 
       {/* ── HOW IT WORKS ── */}
-      <Section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section id="how-it-works" className="relative py-20 bg-white">
+        <HowItWorksBg />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>How It Works</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
@@ -523,8 +526,9 @@ export default function HomePage() {
       </Section>
 
       {/* ── COMPARISON TABLE ── */}
-      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+        <ComparisonBg />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Comparison</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
@@ -596,8 +600,9 @@ export default function HomePage() {
       </Section>
 
       {/* ── CONTRACT TYPES ── */}
-      <Section id="contracts" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section id="contracts" className="relative py-20 bg-white">
+        <ContractTypesBg />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>What We Cover</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
@@ -646,8 +651,9 @@ export default function HomePage() {
       </Section>
 
       {/* ── TRUST SIGNALS ── */}
-      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+        <TrustBg />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Why Trust Us</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
@@ -697,8 +703,9 @@ export default function HomePage() {
       </Section>
 
       {/* ── PRICING ── */}
-      <Section id="pricing" className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section id="pricing" className="relative py-20 bg-white">
+        <PricingBg />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Pricing</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
@@ -804,8 +811,9 @@ export default function HomePage() {
       </section>
 
       {/* ── FAQ ── */}
-      <Section id="faq" className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Section id="faq" className="relative py-20 bg-white">
+        <FaqBg />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>FAQ</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
