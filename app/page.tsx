@@ -166,7 +166,7 @@ export default function HomePage() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAF8' }}>
 
       {/* ── NAV ── */}
       <nav className="sticky top-0 z-50 bg-white border-b" style={{ borderColor: '#E5E5E2' }}>
@@ -230,7 +230,7 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 text-center" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -10%, #D8F3DC 0%, #FFFFFF 70%)' }}>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 text-center">
         <motion.div variants={stagger} initial="hidden" animate="visible">
           <motion.div
             variants={fadeUp}
@@ -288,11 +288,11 @@ export default function HomePage() {
       <Marquee text={PROOF_TEXT} bgClass="bg-[#2D6A4F]" textClass="text-white opacity-90" />
 
       {/* ── PAIN ── */}
-      <Section id="problem" className="py-20" style={{ backgroundColor: '#1B4332' }}>
+      <Section id="problem" className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#52B788' }}>The Problem</p>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#FFFFFF' }}>Sound familiar?</h2>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Problem</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>Sound familiar?</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-10">
@@ -319,8 +319,8 @@ export default function HomePage() {
               <motion.div
                 key={card.title}
                 variants={fadeUp}
-                className="border p-8"
-                style={{ backgroundColor: '#243D30', borderColor: '#2D6A4F' }}
+                className="bg-white border p-8"
+                style={{ borderColor: '#E5E5E2' }}
               >
                 <div
                   className="inline-flex items-center px-3 py-1 text-xs font-bold text-white mb-4"
@@ -328,8 +328,8 @@ export default function HomePage() {
                 >
                   {card.label}
                 </div>
-                <h3 className="font-semibold text-base mb-3 leading-snug" style={{ color: '#FFFFFF' }}>{card.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#A7C4B0' }}>{card.body}</p>
+                <h3 className="font-semibold text-base mb-3 leading-snug" style={{ color: '#1B4332' }}>{card.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>{card.body}</p>
               </motion.div>
             ))}
           </div>
@@ -337,9 +337,9 @@ export default function HomePage() {
           <motion.div
             variants={fadeUp}
             className="border p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-            style={{ backgroundColor: '#2D6A4F', borderColor: '#52B788' }}
+            style={{ backgroundColor: '#D8F3DC', borderColor: '#52B788' }}
           >
-            <p className="font-semibold" style={{ color: '#FFFFFF' }}>
+            <p className="font-semibold" style={{ color: '#1B4332' }}>
               ClauseKit solves all three. In under 2 minutes. For &pound;7.
             </p>
             <Link
@@ -354,7 +354,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── HOW IT WORKS ── */}
-      <Section id="how-it-works" className="py-20" style={{ backgroundColor: '#FFFFFF', backgroundImage: 'radial-gradient(circle, #D8F3DC 1px, transparent 1px)', backgroundSize: '28px 28px' }}>
+      <Section id="how-it-works" className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>How It Works</p>
@@ -411,7 +411,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── COMPARISON TABLE ── */}
-      <Section className="py-20" style={{ backgroundColor: '#F0FDF4' }}>
+      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Comparison</p>
@@ -424,7 +424,7 @@ export default function HomePage() {
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
-                  <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#F0FDF4' }}>
+                  <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#FAFAF8' }}>
                     Feature
                   </th>
                   <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
@@ -436,13 +436,13 @@ export default function HomePage() {
                       Best option
                     </span>
                   </th>
-                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Solicitor</th>
-                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Template Website</th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Solicitor</th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Template Website</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON_ROWS.map((row, i) => (
-                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : ''} style={{ backgroundColor: i % 2 !== 0 ? '#F0FDF4' : undefined }}>
+                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : ''} style={{ backgroundColor: i % 2 !== 0 ? '#FAFAF8' : undefined }}>
                     <td className="px-5 py-3.5 font-medium" style={{ color: '#374151' }}>{row.feature}</td>
                     <td className="px-5 py-3.5 text-center" style={{ backgroundColor: i % 2 === 0 ? '#F0FAF4' : '#EDFAF2' }}>
                       {row.ck !== null ? (
@@ -534,11 +534,11 @@ export default function HomePage() {
       </Section>
 
       {/* ── TRUST SIGNALS ── */}
-      <Section className="py-20" style={{ backgroundColor: '#2D6A4F' }}>
+      <Section className="py-20" style={{ backgroundColor: '#FAFAF8' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#52B788' }}>Why Trust Us</p>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#FFFFFF' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Why Trust Us</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
               Built for UK freelancers, by people who&rsquo;ve needed this
             </h2>
           </motion.div>
@@ -550,12 +550,12 @@ export default function HomePage() {
               { Icon: FileText, title: 'UK Law Only', body: 'English & Welsh law, Late Payment of Commercial Debts Act 1998, IR35 awareness baked in.' },
               { Icon: Lock, title: 'GDPR Compliant', body: 'We don\u2019t store your contract content. Generate, pay, download \u2014 that\u2019s it.' },
             ].map((t) => (
-              <motion.div key={t.title} variants={fadeUp} className="border p-6" style={{ backgroundColor: '#243D30', borderColor: '#3D7A5E' }}>
-                <div className="w-10 h-10 flex items-center justify-center mb-4" style={{ backgroundColor: '#1B4332' }}>
-                  <t.Icon className="w-5 h-5" style={{ color: '#52B788' }} />
+              <motion.div key={t.title} variants={fadeUp} className="bg-white border p-6" style={{ borderColor: '#E5E5E2' }}>
+                <div className="w-10 h-10 flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}>
+                  <t.Icon className="w-5 h-5" style={{ color: '#2D6A4F' }} />
                 </div>
-                <h3 className="font-semibold mb-2" style={{ color: '#FFFFFF' }}>{t.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#A7C4B0' }}>{t.body}</p>
+                <h3 className="font-semibold mb-2" style={{ color: '#1B4332' }}>{t.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>{t.body}</p>
               </motion.div>
             ))}
           </div>
@@ -567,16 +567,16 @@ export default function HomePage() {
               { quote: '\u201cPaid \u00A37, got a contract that my clients take seriously. A solicitor quoted me \u00A3350 for the same thing.\u201d', name: 'James M.', role: 'Digital Marketing Consultant, Manchester' },
               { quote: '\u201cThe IR35 clause alone is worth the \u00A37. Most freelance templates don\u2019t even mention it.\u201d', name: 'Priya K.', role: 'UX Designer, Birmingham' },
             ].map((t) => (
-              <motion.div key={t.name} variants={fadeUp} className="border p-6" style={{ backgroundColor: '#243D30', borderColor: '#3D7A5E' }}>
+              <motion.div key={t.name} variants={fadeUp} className="bg-white border p-6" style={{ borderColor: '#E5E5E2' }}>
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" style={{ color: '#F59E0B' }} />
                   ))}
                 </div>
-                <p className="text-sm leading-relaxed italic mb-5" style={{ color: '#D8F3DC' }}>{t.quote}</p>
+                <p className="text-sm leading-relaxed italic mb-5" style={{ color: '#374151' }}>{t.quote}</p>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{t.name}</p>
-                  <p className="text-xs" style={{ color: '#52B788' }}>{t.role}</p>
+                  <p className="text-sm font-semibold" style={{ color: '#1B4332' }}>{t.name}</p>
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>{t.role}</p>
                 </div>
               </motion.div>
             ))}
@@ -585,7 +585,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── PRICING ── */}
-      <Section id="pricing" className="py-20" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 100%, #D8F3DC 0%, #FFFFFF 65%)' }}>
+      <Section id="pricing" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Pricing</p>
@@ -596,7 +596,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Pay per doc */}
-            <motion.div variants={fadeUp} className="border-2 p-8" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+            <motion.div variants={fadeUp} className="border-2 p-8" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
               <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#9CA3AF' }}>Pay as you go</p>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="font-display text-5xl font-bold" style={{ color: '#1B4332' }}>&pound;7</span>
@@ -692,7 +692,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FAQ ── */}
-      <Section id="faq" className="py-20" style={{ backgroundColor: '#F0FDF4' }}>
+      <Section id="faq" className="py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>FAQ</p>
