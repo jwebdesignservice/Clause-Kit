@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useState } from 'react'
@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Plus, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface IntakeData {
   // Your details
@@ -23,7 +23,7 @@ export interface IntakeData {
   // Contract meta
   contractStartDate: string
   governingLaw: string
-  // Contract-specific — all optional, populated based on type
+  // Contract-specific â€” all optional, populated based on type
   [key: string]: string | string[]
 }
 
@@ -34,17 +34,20 @@ interface WizardProps {
   onBack: () => void
 }
 
-// ── Shared input styles ────────────────────────────────────────────────────────
+// â”€â”€ Shared input styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const inputClass = "w-full border px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
 const inputStyle = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
+const inputErrorStyle = { borderColor: '#EF4444', backgroundColor: '#FEF2F2', color: '#1A1A1A' }
 const labelClass = "block text-sm font-semibold mb-1.5"
 const labelStyle = { color: '#1B4332' }
 const optionalTag = <span className="text-xs font-normal ml-1" style={{ color: '#9CA3AF' }}>(optional)</span>
 
-// ── Field components ───────────────────────────────────────────────────────────
+// â”€â”€ Field components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function Field({ label, optional, hint, children }: { label: string; optional?: boolean; hint?: string; children: React.ReactNode }) {
+function Field({ label, optional, hint, error, children }: {
+  label: string; optional?: boolean; hint?: string; error?: string; children: React.ReactNode
+}) {
   return (
     <div>
       <label className={labelClass} style={labelStyle}>
@@ -52,13 +55,14 @@ function Field({ label, optional, hint, children }: { label: string; optional?: 
         {!optional && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>{hint}</p>}
+      {error && <p className="text-xs mt-1 font-medium" style={{ color: '#EF4444' }}>{error}</p>}
+      {!error && hint && <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>{hint}</p>}
     </div>
   )
 }
 
-function Input({ name, value, onChange, placeholder, type = 'text' }: {
-  name: string; value: string; onChange: (k: string, v: string) => void; placeholder?: string; type?: string
+function Input({ name, value, onChange, placeholder, type = 'text', hasError }: {
+  name: string; value: string; onChange: (k: string, v: string) => void; placeholder?: string; type?: string; hasError?: boolean
 }) {
   return (
     <input
@@ -67,13 +71,13 @@ function Input({ name, value, onChange, placeholder, type = 'text' }: {
       onChange={(e) => onChange(name, e.target.value)}
       placeholder={placeholder}
       className={inputClass}
-      style={inputStyle}
+      style={hasError ? inputErrorStyle : inputStyle}
     />
   )
 }
 
-function Textarea({ name, value, onChange, placeholder, rows = 4 }: {
-  name: string; value: string; onChange: (k: string, v: string) => void; placeholder?: string; rows?: number
+function Textarea({ name, value, onChange, placeholder, rows = 4, hasError }: {
+  name: string; value: string; onChange: (k: string, v: string) => void; placeholder?: string; rows?: number; hasError?: boolean
 }) {
   return (
     <textarea
@@ -82,20 +86,20 @@ function Textarea({ name, value, onChange, placeholder, rows = 4 }: {
       placeholder={placeholder}
       rows={rows}
       className={cn(inputClass, 'resize-none')}
-      style={inputStyle}
+      style={hasError ? inputErrorStyle : inputStyle}
     />
   )
 }
 
-function Select({ name, value, onChange, options }: {
-  name: string; value: string; onChange: (k: string, v: string) => void; options: string[]
+function Select({ name, value, onChange, options, hasError }: {
+  name: string; value: string; onChange: (k: string, v: string) => void; options: string[]; hasError?: boolean
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(name, e.target.value)}
       className={inputClass}
-      style={inputStyle}
+      style={hasError ? inputErrorStyle : inputStyle}
     >
       <option value="">Select...</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -191,17 +195,17 @@ function RepeatableField({ name, values, onChange, placeholder }: {
   )
 }
 
-// ── Contract-specific question sets ───────────────────────────────────────────
+// â”€â”€ Contract-specific question sets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function FreelanceQuestions({ data, set, setArr }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void }) {
+function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Project Details" />
       <Field label="Project title" hint="e.g. Website redesign for Acme Ltd">
         <Input name="projectTitle" value={data.projectTitle as string ?? ''} onChange={set} placeholder="e.g. Brand identity project" />
       </Field>
-      <Field label="Describe the deliverables" hint="What exactly are you delivering? Be specific.">
-        <Textarea name="deliverables" value={data.deliverables as string ?? ''} onChange={set} placeholder="e.g. Logo design (3 concepts + revisions), brand guidelines document, social media kit" rows={3} />
+      <Field label="Describe the deliverables" hint="What exactly are you delivering? Be specific." error={errors.deliverables}>
+        <Textarea name="deliverables" value={data.deliverables as string ?? ''} onChange={set} placeholder="e.g. Logo design (3 concepts + revisions), brand guidelines document, social media kit" rows={3} hasError={!!errors.deliverables} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Project start date">
@@ -217,7 +221,7 @@ function FreelanceQuestions({ data, set, setArr }: { data: IntakeData; set: (k: 
         <Select name="feeStructure" value={data.feeStructure as string ?? ''} onChange={set} options={['Fixed fee', 'Hourly rate', 'Day rate', 'Milestone-based']} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Total fee or rate (£)" hint="e.g. 4500 or 450/day">
+        <Field label="Total fee or rate (Â£)" hint="e.g. 4500 or 450/day">
           <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 4500" />
         </Field>
         <Field label="Invoice payment terms">
@@ -240,20 +244,20 @@ function FreelanceQuestions({ data, set, setArr }: { data: IntakeData; set: (k: 
           <Select name="revisionsIncluded" value={data.revisionsIncluded as string ?? ''} onChange={set} options={['1 round', '2 rounds', '3 rounds', 'Unlimited', 'No revisions included']} />
         </Field>
         <Field label="Additional revision rate" optional hint="If revisions are used up">
-          <Input name="additionalRevisionRate" value={data.additionalRevisionRate as string ?? ''} onChange={set} placeholder="e.g. £150/hr" />
+          <Input name="additionalRevisionRate" value={data.additionalRevisionRate as string ?? ''} onChange={set} placeholder="e.g. Â£150/hr" />
         </Field>
       </div>
 
       <SectionHeading title="Intellectual Property" />
       <Field label="When does IP transfer to the client?">
-        <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only — IP stays with freelancer']} />
+        <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only â€” IP stays with freelancer']} />
       </Field>
       <Toggle name="portfolioRight" value={data.portfolioRight as string ?? 'yes'} onChange={set} label="Freelancer may show work in portfolio?" />
 
       <SectionHeading title="Termination & Confidentiality" />
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Notice period to terminate">
-          <Select name="noticePeriod" value={data.noticePeriod as string ?? ''} onChange={set} options={['7 days', '14 days', '30 days', 'No notice — fixed term only']} />
+          <Select name="noticePeriod" value={data.noticePeriod as string ?? ''} onChange={set} options={['7 days', '14 days', '30 days', 'No notice â€” fixed term only']} />
         </Field>
         <Field label="Work in progress on termination">
           <Select name="terminationWIP" value={data.terminationWIP as string ?? ''} onChange={set} options={['Client pays for work done to date', 'Freelancer keeps deposit', 'Full fee remains due']} />
@@ -269,14 +273,14 @@ function FreelanceQuestions({ data, set, setArr }: { data: IntakeData; set: (k: 
   )
 }
 
-function NdaMutualQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function NdaMutualQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Purpose & Information" />
       <Field label="Purpose of this NDA">
         <Select name="ndaPurpose" value={data.ndaPurpose as string ?? ''} onChange={set} options={['Exploring a business partnership', 'Discussing a potential project', 'Due diligence / acquisition', 'Pre-employment discussions', 'Licensing negotiations', 'Supplier relationship', 'Other']} />
       </Field>
-      <Field label="Describe the confidential information to be shared" hint="Be specific — this defines what is protected.">
+      <Field label="Describe the confidential information to be shared" hint="Be specific â€” this defines what is protected.">
         <Textarea name="confidentialInfo" value={data.confidentialInfo as string ?? ''} onChange={set} placeholder="e.g. Business plans, client lists, financial forecasts, proprietary software architecture" rows={3} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
@@ -301,15 +305,15 @@ function NdaMutualQuestions({ data, set }: { data: IntakeData; set: (k: string, 
   )
 }
 
-function NdaOneWayQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function NdaOneWayQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Disclosing Party" />
       <Field label="Who is disclosing the confidential information?">
-        <Select name="disclosingParty" value={data.disclosingParty as string ?? ''} onChange={set} options={['You (the user — Party 1)', 'The other party (Party 2)']} />
+        <Select name="disclosingParty" value={data.disclosingParty as string ?? ''} onChange={set} options={['You (the user â€” Party 1)', 'The other party (Party 2)']} />
       </Field>
       <Field label="What is the receiving party permitted to do with the information?">
-        <Select name="permittedUse" value={data.permittedUse as string ?? ''} onChange={set} options={['Evaluate only — no further use', 'Use in delivery of a specific project', 'Internal business purposes only', 'Cannot share with any third parties']} />
+        <Select name="permittedUse" value={data.permittedUse as string ?? ''} onChange={set} options={['Evaluate only â€” no further use', 'Use in delivery of a specific project', 'Internal business purposes only', 'Cannot share with any third parties']} />
       </Field>
 
       <SectionHeading title="Purpose & Information" />
@@ -331,28 +335,28 @@ function NdaOneWayQuestions({ data, set }: { data: IntakeData; set: (k: string, 
   )
 }
 
-function RetainerQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function RetainerQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Services" />
       <Field label="Describe the ongoing services" hint="What will you be doing each month?">
-        <Textarea name="retainerServices" value={data.retainerServices as string ?? ''} onChange={set} placeholder="e.g. Social media management — 20 posts/month across Instagram, LinkedIn and Twitter. Monthly analytics report." rows={3} />
+        <Textarea name="retainerServices" value={data.retainerServices as string ?? ''} onChange={set} placeholder="e.g. Social media management â€” 20 posts/month across Instagram, LinkedIn and Twitter. Monthly analytics report." rows={3} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Hours included per month">
           <Input name="retainerHours" value={data.retainerHours as string ?? ''} onChange={set} placeholder="e.g. 20" />
         </Field>
         <Field label="What happens to unused hours?">
-          <Select name="unusedHours" value={data.unusedHours as string ?? ''} onChange={set} options={['Lost — does not roll over', 'Roll over to next month (max 1 month)', 'Credited as discount']} />
+          <Select name="unusedHours" value={data.unusedHours as string ?? ''} onChange={set} options={['Lost â€” does not roll over', 'Roll over to next month (max 1 month)', 'Credited as discount']} />
         </Field>
       </div>
       <Field label="Overflow hours rate (if hours exceeded)" optional>
-        <Input name="overflowRate" value={data.overflowRate as string ?? ''} onChange={set} placeholder="e.g. £150/hr" />
+        <Input name="overflowRate" value={data.overflowRate as string ?? ''} onChange={set} placeholder="e.g. Â£150/hr" />
       </Field>
 
       <SectionHeading title="Payment" />
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Monthly retainer fee (£)">
+        <Field label="Monthly retainer fee (Â£)">
           <Input name="retainerFee" value={data.retainerFee as string ?? ''} onChange={set} placeholder="e.g. 2000" />
         </Field>
         <Field label="Payment due date each month">
@@ -377,7 +381,7 @@ function RetainerQuestions({ data, set }: { data: IntakeData; set: (k: string, v
   )
 }
 
-function SubcontractorQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function SubcontractorQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Work Description" />
@@ -393,7 +397,7 @@ function SubcontractorQuestions({ data, set }: { data: IntakeData; set: (k: stri
         </Field>
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Total fee or rate (£)">
+        <Field label="Total fee or rate (Â£)">
           <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 3000" />
         </Field>
         <Field label="Payment terms after delivery">
@@ -415,7 +419,7 @@ function SubcontractorQuestions({ data, set }: { data: IntakeData; set: (k: stri
   )
 }
 
-function ClientServiceQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function ClientServiceQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Services" />
@@ -432,7 +436,7 @@ function ClientServiceQuestions({ data, set }: { data: IntakeData; set: (k: stri
         <Field label="Fee structure">
           <Select name="feeStructure" value={data.feeStructure as string ?? ''} onChange={set} options={['Fixed fee', 'Hourly rate', 'Day rate', 'Monthly retainer', 'Milestone-based']} />
         </Field>
-        <Field label="Fee amount (£)">
+        <Field label="Fee amount (Â£)">
           <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 5000" />
         </Field>
       </div>
@@ -444,7 +448,7 @@ function ClientServiceQuestions({ data, set }: { data: IntakeData; set: (k: stri
       <Toggle name="liabilityCap" value={data.liabilityCap as string ?? 'yes'} onChange={set} label="Limit your liability?" />
       {data.liabilityCap === 'yes' && (
         <Field label="Liability cap amount" hint="Typical: value of contract or 2x contract value">
-          <Select name="liabilityCapAmount" value={data.liabilityCapAmount as string ?? ''} onChange={set} options={['Value of the contract', '2x value of the contract', '£10,000', '£25,000', '£50,000', '£100,000']} />
+          <Select name="liabilityCapAmount" value={data.liabilityCapAmount as string ?? ''} onChange={set} options={['Value of the contract', '2x value of the contract', 'Â£10,000', 'Â£25,000', 'Â£50,000', 'Â£100,000']} />
         </Field>
       )}
       <Toggle name="excludeConsequential" value={data.excludeConsequential as string ?? 'yes'} onChange={set} label="Exclude liability for client's consequential losses (lost profits, etc)?" />
@@ -462,7 +466,7 @@ function ClientServiceQuestions({ data, set }: { data: IntakeData; set: (k: stri
   )
 }
 
-function WebsiteTcsQuestions({ data, set, setArr }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void }) {
+function WebsiteTcsQuestions({ data, set, setArr, errors }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Your Website" />
@@ -500,7 +504,7 @@ function WebsiteTcsQuestions({ data, set, setArr }: { data: IntakeData; set: (k:
   )
 }
 
-function LatePaymentQuestions({ data, set }: { data: IntakeData; set: (k: string, v: string) => void }) {
+function LatePaymentQuestions({ data, set, errors }: { data: IntakeData; set: (k: string, v: string) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Invoice Details" />
@@ -513,7 +517,7 @@ function LatePaymentQuestions({ data, set }: { data: IntakeData; set: (k: string
         </Field>
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Invoice amount (£)" hint="Excluding VAT">
+        <Field label="Invoice amount (Â£)" hint="Excluding VAT">
           <Input name="invoiceAmount" value={data.invoiceAmount as string ?? ''} onChange={set} placeholder="e.g. 2500" />
         </Field>
         <Field label="Original payment due date">
@@ -521,7 +525,7 @@ function LatePaymentQuestions({ data, set }: { data: IntakeData; set: (k: string
         </Field>
       </div>
       <Field label="What goods or services were these for?">
-        <Input name="invoiceDescription" value={data.invoiceDescription as string ?? ''} onChange={set} placeholder="e.g. Website design and development — completed June 2026" />
+        <Input name="invoiceDescription" value={data.invoiceDescription as string ?? ''} onChange={set} placeholder="e.g. Website design and development â€” completed June 2026" />
       </Field>
 
       <SectionHeading title="Chasing History" />
@@ -534,21 +538,21 @@ function LatePaymentQuestions({ data, set }: { data: IntakeData; set: (k: string
       <Toggle name="invoiceAcknowledged" value={data.invoiceAcknowledged as string ?? 'no'} onChange={set} label="Has the debtor acknowledged the invoice?" />
 
       <SectionHeading title="Demands" />
-      <Field label="Final payment deadline" hint="Recommended: 7–14 days from today">
+      <Field label="Final payment deadline" hint="Recommended: 7â€“14 days from today">
         <Input name="finalDeadline" value={data.finalDeadline as string ?? ''} onChange={set} type="date" />
       </Field>
       <Field label="Intended next step if unpaid">
-        <Select name="legalThreat" value={data.legalThreat as string ?? ''} onChange={set} options={['Small claims court (up to £10,000)', 'County Court judgment (CCJ)', 'Pass to debt collection agency', 'Instruct solicitors', 'Not specified']} />
+        <Select name="legalThreat" value={data.legalThreat as string ?? ''} onChange={set} options={['Small claims court (up to Â£10,000)', 'County Court judgment (CCJ)', 'Pass to debt collection agency', 'Instruct solicitors', 'Not specified']} />
       </Field>
 
       <div className="p-4 border text-sm" style={{ borderColor: '#D8F3DC', backgroundColor: '#EDFAF2', color: '#1B4332' }}>
-        <strong>Auto-applied:</strong> Statutory interest at 8% above Bank of England base rate will be calculated from the due date, plus fixed compensation of £40–£100 under the Late Payment of Commercial Debts (Interest) Act 1998.
+        <strong>Auto-applied:</strong> Statutory interest at 8% above Bank of England base rate will be calculated from the due date, plus fixed compensation of Â£40â€“Â£100 under the Late Payment of Commercial Debts (Interest) Act 1998.
       </div>
     </div>
   )
 }
 
-function EmploymentOfferQuestions({ data, set, setArr }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void }) {
+function EmploymentOfferQuestions({ data, set, setArr, errors }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void; errors: Record<string, string> }) {
   return (
     <div className="space-y-5">
       <SectionHeading title="Role" />
@@ -580,7 +584,7 @@ function EmploymentOfferQuestions({ data, set, setArr }: { data: IntakeData; set
 
       <SectionHeading title="Pay & Hours" />
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Annual salary (£)" hint="Minimum £11.44/hr from Apr 2024">
+        <Field label="Annual salary (Â£)" hint="Minimum Â£11.44/hr from Apr 2024">
           <Input name="annualSalary" value={data.annualSalary as string ?? ''} onChange={set} placeholder="e.g. 45000" />
         </Field>
         <Field label="Pay frequency">
@@ -592,7 +596,7 @@ function EmploymentOfferQuestions({ data, set, setArr }: { data: IntakeData; set
           <Input name="hoursPerWeek" value={data.hoursPerWeek as string ?? ''} onChange={set} placeholder="e.g. 37.5" />
         </Field>
         <Field label="Core hours" optional>
-          <Input name="coreHours" value={data.coreHours as string ?? ''} onChange={set} placeholder="e.g. 9am–5pm Mon–Fri" />
+          <Input name="coreHours" value={data.coreHours as string ?? ''} onChange={set} placeholder="e.g. 9amâ€“5pm Monâ€“Fri" />
         </Field>
       </div>
 
@@ -602,7 +606,7 @@ function EmploymentOfferQuestions({ data, set, setArr }: { data: IntakeData; set
           <Input name="holidayDays" value={data.holidayDays as string ?? ''} onChange={set} placeholder="e.g. 28" />
         </Field>
         <Field label="Holiday year runs">
-          <Select name="holidayYear" value={data.holidayYear as string ?? ''} onChange={set} options={['1 January – 31 December', '1 April – 31 March', 'Rolling anniversary of start date']} />
+          <Select name="holidayYear" value={data.holidayYear as string ?? ''} onChange={set} options={['1 January â€“ 31 December', '1 April â€“ 31 March', 'Rolling anniversary of start date']} />
         </Field>
       </div>
 
@@ -649,7 +653,7 @@ function EmploymentOfferQuestions({ data, set, setArr }: { data: IntakeData; set
   )
 }
 
-// ── Section heading helper ─────────────────────────────────────────────────────
+// â”€â”€ Section heading helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionHeading({ title }: { title: string }) {
   return (
@@ -659,14 +663,15 @@ function SectionHeading({ title }: { title: string }) {
   )
 }
 
-// ── Step labels ────────────────────────────────────────────────────────────────
+// â”€â”€ Step labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STEPS = ['Your details', 'Their details', 'Contract details', 'Review']
 
-// ── Main wizard ────────────────────────────────────────────────────────────────
+// â”€â”€ Main wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComplete, onBack }: WizardProps) {
   const [step, setStep] = useState(0)
+  const [attempted, setAttempted] = useState(false)
   const [data, setData] = useState<IntakeData>({
     yourName: '', yourEmail: '', yourAddress: '', yourCompanyNumber: '', yourVatNumber: '',
     theirName: '', theirEmail: '', theirAddress: '', theirContactName: '',
@@ -676,27 +681,111 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
   const set = (k: string, v: string) => setData((d) => ({ ...d, [k]: v }))
   const setArr = (k: string, v: string[]) => setData((d) => ({ ...d, [k]: v }))
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
-  const prev = () => { if (step === 0) onBack(); else setStep((s) => s - 1) }
+  // â”€â”€ Per-step validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // ── Step validation (basic required fields) ──
-  const canProceed = () => {
-    if (step === 0) return !!data.yourName && !!data.yourEmail
-    if (step === 1) return !!data.theirName && !!data.theirEmail
-    return true
+  const getErrors = (): Record<string, string> => {
+    const e: Record<string, string> = {}
+
+    if (step === 0) {
+      if (!data.yourName?.trim()) e.yourName = 'Your name or company name is required'
+      if (!data.yourEmail?.trim()) e.yourEmail = 'Email address is required'
+      else if (!/\S+@\S+\.\S+/.test(data.yourEmail)) e.yourEmail = 'Enter a valid email address'
+      if (!data.yourAddress?.trim()) e.yourAddress = 'Business address is required'
+    }
+
+    if (step === 1) {
+      if (!data.theirName?.trim()) e.theirName = 'Their name or company name is required'
+      if (!data.theirEmail?.trim()) e.theirEmail = 'Their email address is required'
+      else if (!/\S+@\S+\.\S+/.test(data.theirEmail)) e.theirEmail = 'Enter a valid email address'
+      if (!data.theirAddress?.trim()) e.theirAddress = 'Their address is required'
+    }
+
+    if (step === 2) {
+      if (!data.contractStartDate) e.contractStartDate = 'Start date is required'
+
+      // Contract-type specific required fields
+      switch (contractTypeId) {
+        case 'freelance':
+          if (!data.deliverables?.toString().trim()) e.deliverables = 'Please describe the deliverables'
+          if (!data.feeStructure) e.feeStructure = 'Please select a fee structure'
+          if (!data.feeAmount?.toString().trim()) e.feeAmount = 'Fee amount is required'
+          if (!data.paymentTerms) e.paymentTerms = 'Please select payment terms'
+          if (!data.ipTransfer) e.ipTransfer = 'Please select when IP transfers'
+          break
+        case 'nda-mutual':
+        case 'nda-one-way':
+          if (!data.ndaPurpose) e.ndaPurpose = 'Please select the purpose of this NDA'
+          if (!data.confidentialInfo?.toString().trim()) e.confidentialInfo = 'Please describe the confidential information'
+          if (!data.ndaDuration) e.ndaDuration = 'Please select the NDA duration'
+          break
+        case 'retainer':
+          if (!data.retainerServices?.toString().trim()) e.retainerServices = 'Please describe the services'
+          if (!data.retainerFee?.toString().trim()) e.retainerFee = 'Monthly fee is required'
+          if (!data.paymentTerms) e.paymentTerms = 'Please select payment terms'
+          if (!data.minimumTerm) e.minimumTerm = 'Please select a minimum term'
+          break
+        case 'subcontractor':
+          if (!data.subcontractWork?.toString().trim()) e.subcontractWork = 'Please describe the work'
+          if (!data.feeAmount?.toString().trim()) e.feeAmount = 'Fee is required'
+          if (!data.paymentTerms) e.paymentTerms = 'Please select payment terms'
+          break
+        case 'client-service':
+          if (!data.serviceType) e.serviceType = 'Please select a service type'
+          if (!data.serviceDescription?.toString().trim()) e.serviceDescription = 'Please describe the services'
+          if (!data.feeAmount?.toString().trim()) e.feeAmount = 'Fee amount is required'
+          if (!data.paymentTerms) e.paymentTerms = 'Please select payment terms'
+          break
+        case 'website-tcs':
+          if (!data.websiteUrl?.toString().trim()) e.websiteUrl = 'Website URL is required'
+          if (!data.websiteType) e.websiteType = 'Please select the website type'
+          break
+        case 'late-payment':
+          if (!data.invoiceNumber?.toString().trim()) e.invoiceNumber = 'Invoice number is required'
+          if (!data.invoiceAmount?.toString().trim()) e.invoiceAmount = 'Invoice amount is required'
+          if (!data.invoiceDueDate) e.invoiceDueDate = 'Original due date is required'
+          if (!data.finalDeadline) e.finalDeadline = 'Final payment deadline is required'
+          break
+        case 'employment-offer':
+          if (!data.jobTitle?.toString().trim()) e.jobTitle = 'Job title is required'
+          if (!data.annualSalary?.toString().trim()) e.annualSalary = 'Salary is required'
+          if (!data.hoursPerWeek?.toString().trim()) e.hoursPerWeek = 'Hours per week is required'
+          if (!data.holidayDays?.toString().trim()) e.holidayDays = 'Holiday entitlement is required'
+          if (!data.probationPeriod) e.probationPeriod = 'Please select a probation period'
+          if (!data.startDate) e.startDate = 'Start date is required'
+          break
+      }
+    }
+
+    return e
+  }
+
+  const errors = attempted ? getErrors() : {}
+  const isValid = Object.keys(getErrors()).length === 0
+
+  const next = () => {
+    setAttempted(true)
+    if (!isValid) return
+    setAttempted(false)
+    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+  }
+
+  const prev = () => {
+    setAttempted(false)
+    if (step === 0) onBack()
+    else setStep((s) => s - 1)
   }
 
   const contractQuestions = () => {
     switch (contractTypeId) {
-      case 'freelance': return <FreelanceQuestions data={data} set={set} setArr={setArr} />
-      case 'nda-mutual': return <NdaMutualQuestions data={data} set={set} />
-      case 'nda-one-way': return <NdaOneWayQuestions data={data} set={set} />
-      case 'retainer': return <RetainerQuestions data={data} set={set} />
-      case 'subcontractor': return <SubcontractorQuestions data={data} set={set} />
-      case 'client-service': return <ClientServiceQuestions data={data} set={set} />
-      case 'website-tcs': return <WebsiteTcsQuestions data={data} set={set} setArr={setArr} />
-      case 'late-payment': return <LatePaymentQuestions data={data} set={set} />
-      case 'employment-offer': return <EmploymentOfferQuestions data={data} set={set} setArr={setArr} />
+      case 'freelance': return <FreelanceQuestions data={data} set={set} setArr={setArr} errors={errors} />
+      case 'nda-mutual': return <NdaMutualQuestions data={data} set={set} errors={errors} />
+      case 'nda-one-way': return <NdaOneWayQuestions data={data} set={set} errors={errors} />
+      case 'retainer': return <RetainerQuestions data={data} set={set} errors={errors} />
+      case 'subcontractor': return <SubcontractorQuestions data={data} set={set} errors={errors} />
+      case 'client-service': return <ClientServiceQuestions data={data} set={set} errors={errors} />
+      case 'website-tcs': return <WebsiteTcsQuestions data={data} set={set} setArr={setArr} errors={errors} />
+      case 'late-payment': return <LatePaymentQuestions data={data} set={set} errors={errors} />
+      case 'employment-offer': return <EmploymentOfferQuestions data={data} set={set} setArr={setArr} errors={errors} />
       default: return null
     }
   }
@@ -723,7 +812,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
                   : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
                 }
               >
-                {i < step ? '✓' : i + 1}
+                {i < step ? 'âœ“' : i + 1}
               </div>
               <span className="text-xs font-medium hidden sm:block" style={{ color: i <= step ? '#1B4332' : '#9CA3AF' }}>{label}</span>
             </div>
@@ -740,7 +829,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
           exit={{ opacity: 0, x: -12 }}
           transition={{ duration: 0.2 }}
         >
-          {/* ── Step 0: Your Details ── */}
+          {/* â”€â”€ Step 0: Your Details â”€â”€ */}
           {step === 0 && (
             <div className="space-y-4">
               <div className="mb-5">
@@ -748,15 +837,15 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
                 <p className="text-sm" style={{ color: '#6B7280' }}>These will appear as Party 1 in the contract.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Full name or company name">
-                  <Input name="yourName" value={data.yourName} onChange={set} placeholder="e.g. Jane Smith / Acme Ltd" />
+                <Field label="Full name or company name" error={errors.yourName}>
+                  <Input name="yourName" value={data.yourName} onChange={set} placeholder="e.g. Jane Smith / Acme Ltd" hasError={!!errors.yourName} />
                 </Field>
-                <Field label="Email address">
-                  <Input name="yourEmail" value={data.yourEmail} onChange={set} placeholder="jane@acme.co.uk" type="email" />
+                <Field label="Email address" error={errors.yourEmail}>
+                  <Input name="yourEmail" value={data.yourEmail} onChange={set} placeholder="jane@acme.co.uk" type="email" hasError={!!errors.yourEmail} />
                 </Field>
               </div>
-              <Field label="Business address">
-                <Textarea name="yourAddress" value={data.yourAddress} onChange={set} placeholder="123 High Street&#10;London&#10;EC1A 1BB" rows={3} />
+              <Field label="Business address" error={errors.yourAddress}>
+                <Textarea name="yourAddress" value={data.yourAddress} onChange={set} placeholder="123 High Street&#10;London&#10;EC1A 1BB" rows={3} hasError={!!errors.yourAddress} />
               </Field>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Company number" optional hint="If Ltd company">
@@ -769,31 +858,31 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
             </div>
           )}
 
-          {/* ── Step 1: Their Details ── */}
+          {/* â”€â”€ Step 1: Their Details â”€â”€ */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="mb-5">
                 <h2 className="font-display text-xl font-bold mb-1" style={{ color: '#1B4332' }}>Their details</h2>
-                <p className="text-sm" style={{ color: '#6B7280' }}>The client or other party — Party 2 in the contract.</p>
+                <p className="text-sm" style={{ color: '#6B7280' }}>The client or other party â€” Party 2 in the contract.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Full name or company name">
-                  <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Restaurant Group Ltd" />
+                <Field label="Full name or company name" error={errors.theirName}>
+                  <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Restaurant Group Ltd" hasError={!!errors.theirName} />
                 </Field>
-                <Field label="Contact name" optional hint="If company — who is signing?">
+                <Field label="Contact name" optional hint="If company â€” who is signing?">
                   <Input name="theirContactName" value={data.theirContactName} onChange={set} placeholder="e.g. Tom Jones" />
                 </Field>
               </div>
-              <Field label="Email address" hint="Used to send them the contract">
-                <Input name="theirEmail" value={data.theirEmail} onChange={set} placeholder="tom@restaurantgroup.co.uk" type="email" />
+              <Field label="Email address" error={errors.theirEmail}>
+                <Input name="theirEmail" value={data.theirEmail} onChange={set} placeholder="tom@restaurantgroup.co.uk" type="email" hasError={!!errors.theirEmail} />
               </Field>
-              <Field label="Business address">
-                <Textarea name="theirAddress" value={data.theirAddress} onChange={set} placeholder="456 Business Park&#10;Manchester&#10;M1 1AA" rows={3} />
+              <Field label="Business address" error={errors.theirAddress}>
+                <Textarea name="theirAddress" value={data.theirAddress} onChange={set} placeholder="456 Business Park&#10;Manchester&#10;M1 1AA" rows={3} hasError={!!errors.theirAddress} />
               </Field>
             </div>
           )}
 
-          {/* ── Step 2: Contract Questions ── */}
+          {/* â”€â”€ Step 2: Contract Questions â”€â”€ */}
           {step === 2 && (
             <div>
               <div className="mb-5">
@@ -814,7 +903,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
             </div>
           )}
 
-          {/* ── Step 3: Review ── */}
+          {/* â”€â”€ Step 3: Review â”€â”€ */}
           {step === 3 && (
             <div>
               <div className="mb-5">
@@ -869,8 +958,21 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
         </motion.div>
       </AnimatePresence>
 
+      {/* Validation error banner */}
+      {attempted && !isValid && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-5 flex items-start gap-3 px-4 py-3 text-sm border"
+          style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}
+        >
+          <span className="font-bold flex-shrink-0">!</span>
+          <span>Please fill in all required fields before continuing. Fields with errors are highlighted above.</span>
+        </motion.div>
+      )}
+
       {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-5 border-t" style={{ borderColor: '#E5E5E2' }}>
+      <div className="flex items-center justify-between mt-5 pt-5 border-t" style={{ borderColor: '#E5E5E2' }}>
         <button onClick={prev} className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -878,8 +980,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
         {step < STEPS.length - 1 ? (
           <button
             onClick={next}
-            disabled={!canProceed()}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: '#2D6A4F' }}
           >
             Continue <ArrowRight className="w-4 h-4" />
@@ -897,6 +998,9 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
     </div>
   )
 }
+
+
+
 
 
 
