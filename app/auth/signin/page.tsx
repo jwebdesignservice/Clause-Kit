@@ -91,7 +91,11 @@ function SignInForm() {
             </button>
           </form>
         </div>
-        <p className="text-center text-xs mt-4">
+        <p className="text-center text-xs mt-5" style={{ color: '#9CA3AF' }}>
+          Don&rsquo;t have an account?{' '}
+          <Link href="/auth/signup" className="font-semibold hover:opacity-70" style={{ color: '#2D6A4F' }}>Create one free</Link>
+        </p>
+        <p className="text-center text-xs mt-2">
           <Link href="/" className="hover:opacity-70" style={{ color: '#9CA3AF' }}>&larr; Back to ClauseKit</Link>
         </p>
       </motion.div>
