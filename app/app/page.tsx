@@ -38,7 +38,7 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help'
+type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help' | 'contract-view'
 // Step 1 = choose type, 2 = intake wizard, 3 = loading, 4 = preview
 type Step = 1 | 2 | 3 | 4
 
@@ -64,6 +64,8 @@ interface SavedContract {
   createdAt: string
   sentAt?: string
   completedAt?: string
+  content?: string
+  intakeData?: Record<string, string | string[]>
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────────
@@ -181,8 +183,8 @@ function StatusBadge({ status }: { status: ContractStatus }) {
 
 type ContractsTabFilter = 'all' | ContractStatus
 
-function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout }: {
-  savedContracts: SavedContract[]; searchQuery: string; onNew: () => void; onCheckout: (id: string) => void
+function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView }: {
+  savedContracts: SavedContract[]; searchQuery: string; onNew: () => void; onCheckout: (id: string) => void; onView: (id: string) => void
 }) {
   const [af, setAf] = useState<ContractsTabFilter>('all')
   const counts: Record<ContractsTabFilter, number> = {
@@ -229,11 +231,13 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout }: {
           </div>
           {list.map((c, i) => (
             <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3.5 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
+              <button onClick={() => onView(c.id)} className="flex items-center gap-4 flex-1 min-w-0 text-left">
               <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate mb-0.5" style={{ color: '#1B4332' }}>{c.title}</p>
-                <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{c.typeName}{c.party2 ? ` \u00B7 ${c.party2}` : ''}</p>
+                <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{c.typeName}{c.party2 ? ` · ${c.party2}` : ''}</p>
               </div>
+              </button>
               <div className="w-24 hidden sm:flex justify-center flex-shrink-0"><StatusBadge status={c.status} /></div>
               <div className="w-32 hidden md:block text-right text-xs flex-shrink-0" style={{ color: '#9CA3AF' }}>{c.completedAt ? fmtDate(c.completedAt) : c.sentAt ? fmtDate(c.sentAt) : fmtDate(c.createdAt)}</div>
               <div className="w-28 flex justify-end flex-shrink-0">
@@ -250,6 +254,230 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout }: {
   )
 }
 
+// ── Contract Viewer ────────────────────────────────────────────────────────────
+
+function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
+  contract: SavedContract
+  onBack: () => void
+  onCheckout: (id: string) => void
+  onUpdate: (updated: SavedContract) => void
+}) {
+  const [sideTab, setSideTab] = useState<'parties' | 'details' | 'terms'>('parties')
+  const [editableContent, setEditableContent] = useState(contract.content ?? '')
+  const [editableTitle, setEditableTitle] = useState(contract.title)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  // Debounced save
+  useEffect(() => {
+    const t = setTimeout(() => {
+      onUpdate({ ...contract, content: editableContent, title: editableTitle })
+    }, 500)
+    return () => clearTimeout(t)
+  }, [editableContent, editableTitle]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Parse contract text into blocks
+  const blocks = editableContent.split(/\n\n+/).filter(Boolean)
+
+  const intake = contract.intakeData ?? {}
+
+  const KEY_TERM_LABELS: Record<string, string> = {
+    feeAmount: 'Fee',
+    feeStructure: 'Fee structure',
+    paymentTerms: 'Payment terms',
+    paymentSchedule: 'Payment schedule',
+    ipTransfer: 'IP transfer',
+    noticePeriod: 'Notice period',
+    ndaDuration: 'NDA duration',
+    ndaScope: 'NDA scope',
+    retainerFee: 'Monthly retainer',
+    minimumTerm: 'Minimum term',
+    jobTitle: 'Job title',
+    annualSalary: 'Annual salary',
+    hoursPerWeek: 'Hours per week',
+    holidayDays: 'Holiday days',
+    probationPeriod: 'Probation period',
+    revisionsIncluded: 'Revisions included',
+    deliverables: 'Deliverables',
+    retainerServices: 'Services',
+    confidentialityDuration: 'Confidentiality',
+  }
+
+  const keyTerms = Object.entries(KEY_TERM_LABELS)
+    .filter(([k]) => intake[k] && String(intake[k]).trim())
+    .map(([k, label]) => ({ label, value: String(intake[k]) }))
+
+  const isHeading = (line: string) => {
+    const t = line.trim()
+    return (t === t.toUpperCase() && t.length > 3 && !/^\d/.test(t)) || t.endsWith(':')
+  }
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      {/* ── Left: Editable Document ── */}
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="max-w-3xl mx-auto px-8 py-10">
+          {/* Back */}
+          <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
+            ← Back to dashboard
+          </button>
+
+          {/* Editable title */}
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            onBlur={(e) => setEditableTitle(e.currentTarget.textContent ?? '')}
+            className="font-display text-3xl font-bold mb-1 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+            style={{ color: '#1B4332', minHeight: '2rem' }}
+          >
+            {contract.title}
+          </div>
+          <p className="text-xs mb-8" style={{ color: '#9CA3AF' }}>
+            {contract.typeName} · Generated {new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · Click any text to edit
+          </p>
+
+          {/* Document body */}
+          <div className="space-y-4">
+            {blocks.map((block, i) => {
+              const heading = isHeading(block)
+              return (
+                <div
+                  key={i}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    const newBlocks = [...blocks]
+                    newBlocks[i] = e.currentTarget.textContent ?? ''
+                    setEditableContent(newBlocks.join('\n\n'))
+                  }}
+                  className={`outline-none focus:bg-[#FAFAF8] px-1 -mx-1 leading-relaxed ${heading ? 'font-bold text-sm uppercase tracking-wide mt-6' : 'text-sm'}`}
+                  style={{ color: heading ? '#1B4332' : '#374151', minHeight: '1.5rem' }}
+                >
+                  {block}
+                </div>
+              )
+            })}
+          </div>
+
+          {blocks.length === 0 && (
+            <p className="text-sm italic" style={{ color: '#9CA3AF' }}>No contract content yet.</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Right: Info Sidebar ── */}
+      <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
+        {/* Tabs */}
+        <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
+          {(['parties', 'details', 'terms'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setSideTab(t)}
+              className="flex-1 py-2.5 text-xs font-semibold capitalize transition-colors"
+              style={sideTab === t
+                ? { backgroundColor: '#D8F3DC', color: '#1B4332', borderBottom: '2px solid #2D6A4F' }
+                : { backgroundColor: 'transparent', color: '#9CA3AF', borderBottom: '2px solid transparent' }
+              }
+            >
+              {t === 'parties' ? 'Parties' : t === 'details' ? 'Details' : 'Key Terms'}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {sideTab === 'parties' && (
+            <>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 1 — You</p>
+                {[
+                  { label: 'Name', value: contract.party1 },
+                  { label: 'Email', value: contract.party1Email },
+                  { label: 'Address', value: String(intake.yourAddress ?? '') },
+                  { label: 'Company no.', value: String(intake.yourCompanyNumber ?? '') },
+                  { label: 'VAT no.', value: String(intake.yourVatNumber ?? '') },
+                ].filter(r => r.value).map(r => (
+                  <div key={r.label} className="mb-2">
+                    <p className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{r.label}</p>
+                    <p className="text-sm" style={{ color: '#1B4332' }}>{r.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t pt-4" style={{ borderColor: '#E5E5E2' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 2 — Client</p>
+                {[
+                  { label: 'Name', value: contract.party2 },
+                  { label: 'Email', value: contract.party2Email },
+                  { label: 'Address', value: String(intake.theirAddress ?? '') },
+                  { label: 'Contact', value: String(intake.theirContactName ?? '') },
+                ].filter(r => r.value).map(r => (
+                  <div key={r.label} className="mb-2">
+                    <p className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{r.label}</p>
+                    <p className="text-sm" style={{ color: '#1B4332' }}>{r.value}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {sideTab === 'details' && (
+            <>
+              {[
+                { label: 'Contract type', value: contract.typeName },
+                { label: 'Status', value: contract.status.charAt(0).toUpperCase() + contract.status.slice(1) },
+                { label: 'Generated', value: new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) },
+                { label: 'Governing law', value: String(intake.governingLaw ?? 'England & Wales') },
+                { label: 'Start date', value: String(intake.contractStartDate ?? '') },
+                { label: 'Contract ID', value: contract.id },
+              ].filter(r => r.value).map(r => (
+                <div key={r.label} className="mb-3">
+                  <p className="text-xs font-medium mb-0.5" style={{ color: '#9CA3AF' }}>{r.label}</p>
+                  <p className={`text-sm break-all ${r.label === 'Contract ID' ? 'font-mono text-xs' : ''}`} style={{ color: '#1B4332' }}>{r.value}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          {sideTab === 'terms' && (
+            keyTerms.length > 0 ? keyTerms.map(t => (
+              <div key={t.label} className="mb-3">
+                <p className="text-xs font-medium mb-0.5" style={{ color: '#9CA3AF' }}>{t.label}</p>
+                <p className="text-sm" style={{ color: '#1B4332' }}>{t.value}</p>
+              </div>
+            )) : (
+              <p className="text-xs italic" style={{ color: '#9CA3AF' }}>No key terms available for this contract type.</p>
+            )
+          )}
+        </div>
+
+        {/* Download / paywall */}
+        <div className="flex-shrink-0 border-t p-4 space-y-2" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+          {contract.status === 'completed' ? (
+            <a href={`/download/${contract.id}`} className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
+              <Download className="w-4 h-4" /> Download PDF + Word
+            </a>
+          ) : (
+            <>
+              <button
+                onClick={async () => {
+                  setCheckoutLoading(true)
+                  await onCheckout(contract.id)
+                  setCheckoutLoading(false)
+                }}
+                disabled={checkoutLoading}
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : <><Download className="w-4 h-4" /> £7 — Download PDF + Word</>}
+              </button>
+              <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>Free to edit · Pay £7 to download · Secure via Stripe</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function AppDashboard() {
@@ -257,8 +485,7 @@ export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [step, setStep] = useState<Step>(1)
   const [selectedType, setSelectedType] = useState<ContractType | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_intakeData, setIntakeData] = useState<IntakeData | null>(null)
+  const [, setIntakeData] = useState<IntakeData | null>(null)
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [contractId, setContractId] = useState<string | null>(null)
   const [contractContent, setContractContent] = useState<string | null>(null)
@@ -269,6 +496,7 @@ export default function AppDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewingContractId, setViewingContractId] = useState<string | null>(null)
 
   useEffect(() => { setSavedContracts(loadSaved()) }, [])
 
@@ -330,10 +558,16 @@ export default function AppDashboard() {
         party2Email: (intake.theirEmail as string) ?? '',
         status: 'draft',
         createdAt: new Date().toISOString(),
+        content: data.content,
+        intakeData: intake as unknown as Record<string, string | string[]>,
       }
       const updated = [entry, ...loadSaved()]
       persistSaved(updated)
       setSavedContracts(updated)
+
+      // Navigate to contract viewer
+      setViewingContractId(id)
+      setActiveTab('contract-view')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStep(2)
@@ -596,7 +830,7 @@ export default function AppDashboard() {
                   ) : (
                     <div className="border" style={{ borderColor: '#E5E5E2' }}>
                       {savedContracts.slice(0, 5).map((c, i) => (
-                        <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
+                        <button key={c.id} onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className={cn('w-full flex items-center gap-4 px-4 py-3 hover:bg-[#FAFAF8] transition-colors text-left', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
                           <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate" style={{ color: '#1B4332' }}>{c.title}</p>
@@ -604,7 +838,7 @@ export default function AppDashboard() {
                           </div>
                           <StatusBadge status={c.status} />
                           <span className="text-xs flex-shrink-0 hidden sm:block" style={{ color: '#9CA3AF' }}>{fmtDate(c.createdAt)}</span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -768,6 +1002,7 @@ export default function AppDashboard() {
                 searchQuery={searchQuery}
                 onNew={() => navigate('new-contract')}
                 onCheckout={initiateCheckout}
+                onView={(id) => { setViewingContractId(id); setActiveTab('contract-view') }}
               />
             )}
 
@@ -928,6 +1163,30 @@ export default function AppDashboard() {
                 </div>
               </motion.div>
             )}
+
+            {/* ── CONTRACT VIEW ── */}
+            {activeTab === 'contract-view' && viewingContractId && (() => {
+              const c = savedContracts.find(s => s.id === viewingContractId)
+              if (!c) return (
+                <motion.div key="contract-view-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
+                  <p className="text-sm" style={{ color: '#6B7280' }}>Contract not found.</p>
+                </motion.div>
+              )
+              return (
+                <motion.div key={`contract-view-${c.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full overflow-hidden">
+                  <ContractViewer
+                    contract={c}
+                    onBack={() => { setActiveTab('my-contracts'); setViewingContractId(null) }}
+                    onCheckout={initiateCheckout}
+                    onUpdate={(updated) => {
+                      const next = savedContracts.map(s => s.id === updated.id ? updated : s)
+                      setSavedContracts(next)
+                      persistSaved(next)
+                    }}
+                  />
+                </motion.div>
+              )
+            })()}
 
           </AnimatePresence>
         </main>
