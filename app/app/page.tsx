@@ -453,6 +453,119 @@ function SignatureBlock({ party1Name, party2Name }: { party1Name: string; party2
   )
 }
 
+// ── Editable party details (sidebar) ──────────────────────────────────────────
+
+function EditableParties({ contract, intake, onUpdate }: {
+  contract: SavedContract
+  intake: Record<string, unknown>
+  onUpdate: (c: SavedContract) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [p1Name, setP1Name] = useState(contract.party1 ?? '')
+  const [p1Email, setP1Email] = useState(contract.party1Email ?? '')
+  const [p1Address, setP1Address] = useState(String(intake.yourAddress ?? ''))
+  const [p2Name, setP2Name] = useState(contract.party2 ?? '')
+  const [p2Email, setP2Email] = useState(contract.party2Email ?? '')
+  const [p2Address, setP2Address] = useState(String(intake.theirAddress ?? ''))
+  const [p2Contact, setP2Contact] = useState(String(intake.theirContactName ?? ''))
+
+  const inputCls = "w-full border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+  const inputSty = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
+
+  const handleSave = () => {
+    const updated = { ...contract, party1: p1Name, party1Email: p1Email, party2: p2Name, party2Email: p2Email }
+    if (contract.intakeData) {
+      updated.intakeData = { ...contract.intakeData, yourAddress: p1Address, theirAddress: p2Address, theirContactName: p2Contact }
+    }
+    onUpdate(updated)
+    setEditing(false)
+  }
+
+  const Field = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+    <div className="mb-2">
+      <p className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>{label}</p>
+      {editing ? (
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} style={inputSty} />
+      ) : (
+        <p className="text-sm" style={{ color: '#1B4332' }}>{value || '—'}</p>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#2D6A4F' }}>Provider</p>
+        {!editing && (
+          <button onClick={() => setEditing(true)} className="text-xs font-medium hover:opacity-70" style={{ color: '#2D6A4F' }}>Edit</button>
+        )}
+      </div>
+      <Field label="Name" value={p1Name} onChange={setP1Name} />
+      <Field label="Email" value={p1Email} onChange={setP1Email} />
+      <Field label="Address" value={p1Address} onChange={setP1Address} />
+
+      <div className="border-t pt-4 mt-4" style={{ borderColor: '#E5E5E2' }}>
+        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Client</p>
+        <Field label="Name" value={p2Name} onChange={setP2Name} />
+        <Field label="Email" value={p2Email} onChange={setP2Email} />
+        <Field label="Address" value={p2Address} onChange={setP2Address} />
+        <Field label="Contact person" value={p2Contact} onChange={setP2Contact} />
+      </div>
+
+      {editing && (
+        <div className="flex gap-2 mt-4">
+          <button onClick={handleSave} className="flex-1 py-2 text-xs font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
+            Save changes
+          </button>
+          <button onClick={() => setEditing(false)} className="flex-1 py-2 text-xs font-medium border" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ── Document header party info block ──────────────────────────────────────────
+
+function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; intake: Record<string, unknown> }) {
+  const p1Name = contract.party1 ?? ''
+  const p1Email = contract.party1Email ?? ''
+  const p1Address = String(intake.yourAddress ?? '')
+  const p2Name = contract.party2 ?? ''
+  const p2Email = contract.party2Email ?? ''
+  const p2Address = String(intake.theirAddress ?? '')
+  const p2Contact = String(intake.theirContactName ?? '')
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {/* Provider */}
+      <div className="border" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#1B4332' }}>
+        <div className="px-4 py-2 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Provider</p>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          {p1Name && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Name</p><p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Name}</p></div>}
+          {p1Email && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Email</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Email}</p></div>}
+          {p1Address && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Address</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Address}</p></div>}
+        </div>
+      </div>
+      {/* Client */}
+      <div className="border" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#2D6A4F' }}>
+        <div className="px-4 py-2 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Client</p>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          {p2Name && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Name</p><p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Name}</p></div>}
+          {p2Contact && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Contact</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Contact}</p></div>}
+          {p2Email && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Email</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Email}</p></div>}
+          {p2Address && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Address</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Address}</p></div>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   contract: SavedContract
   onBack: () => void
@@ -550,6 +663,9 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
             </p>
           </div>
 
+          {/* Party info cards — at top of document */}
+          <DocumentPartyHeader contract={contract} intake={intake} />
+
           {/* Document body — parsed sections */}
           <div>
             {blocks.map((block, i) => {
@@ -636,37 +752,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {sideTab === 'parties' && (
-            <>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 1 — You</p>
-                {[
-                  { label: 'Name', value: contract.party1 },
-                  { label: 'Email', value: contract.party1Email },
-                  { label: 'Address', value: String(intake.yourAddress ?? '') },
-                  { label: 'Company no.', value: String(intake.yourCompanyNumber ?? '') },
-                  { label: 'VAT no.', value: String(intake.yourVatNumber ?? '') },
-                ].filter(r => r.value).map(r => (
-                  <div key={r.label} className="mb-2">
-                    <p className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{r.label}</p>
-                    <p className="text-sm" style={{ color: '#1B4332' }}>{r.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t pt-4" style={{ borderColor: '#E5E5E2' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 2 — Client</p>
-                {[
-                  { label: 'Name', value: contract.party2 },
-                  { label: 'Email', value: contract.party2Email },
-                  { label: 'Address', value: String(intake.theirAddress ?? '') },
-                  { label: 'Contact', value: String(intake.theirContactName ?? '') },
-                ].filter(r => r.value).map(r => (
-                  <div key={r.label} className="mb-2">
-                    <p className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{r.label}</p>
-                    <p className="text-sm" style={{ color: '#1B4332' }}>{r.value}</p>
-                  </div>
-                ))}
-              </div>
-            </>
+            <EditableParties contract={contract} intake={intake} onUpdate={onUpdate} />
           )}
 
           {sideTab === 'details' && (
