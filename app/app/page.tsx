@@ -584,59 +584,8 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               if (parsed.type === 'party') {
-                const isP1 = block.includes('PARTY 1')
-                const title = isP1 ? 'Provider' : 'Client'
-                // Extract fields
-                const nameMatch = block.match(/Name:\s*([^\n]*?)(?:\s*(?:Company|Address|Email):|$)/i)
-                const companyMatch = block.match(/Company:\s*([^\n]*?)(?:\s*(?:Address|Email):|$)/i)
-                const addressMatch = block.match(/Address:\s*([^\n]*?)(?:\s*Email:|$)/i)
-                const emailMatch = block.match(/Email:\s*([^\s\n]+)/i)
-                const pName = nameMatch?.[1]?.trim() ?? ''
-                const pCompany = companyMatch?.[1]?.trim() ?? ''
-                const pAddress = addressMatch?.[1]?.trim() ?? ''
-                const pEmail = emailMatch?.[1]?.trim() ?? ''
-
-                return (
-                  <div key={i} className="mb-5 border" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#1B4332' }}>
-                    <div className="px-5 py-3 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#888' }}>{title}</p>
-                    </div>
-                    <div className="px-5 py-4">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                        {pName && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Name</p>
-                            <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pName}</p>
-                          </div>
-                        )}
-                        {pCompany && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Business Name</p>
-                            <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pCompany}</p>
-                          </div>
-                        )}
-                        {pEmail && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Email Address</p>
-                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pEmail}</p>
-                          </div>
-                        )}
-                        {!pCompany && pName && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Phone</p>
-                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>N/A</p>
-                          </div>
-                        )}
-                        {pAddress && (
-                          <div className="col-span-2">
-                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Business Address</p>
-                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pAddress}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
+                // Party info is shown in the sidebar — skip rendering in the document body
+                return null
               }
 
               if (parsed.type === 'signature') {
