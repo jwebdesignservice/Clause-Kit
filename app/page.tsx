@@ -160,6 +160,116 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
+// ── Background Decorators ─────────────────────────────────────────────────
+
+function HeroBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <div style={{ position: 'absolute', top: '-80px', left: '-60px', width: '520px', height: '520px', background: 'radial-gradient(circle at 35% 40%, rgba(216,243,220,0.85) 0%, transparent 65%)' }} />
+      <div style={{ position: 'absolute', bottom: '-60px', right: '-40px', width: '400px', height: '400px', background: 'radial-gradient(circle at 60% 60%, rgba(82,183,136,0.25) 0%, transparent 65%)' }} />
+      <div style={{ position: 'absolute', top: '30%', right: '12%', width: '180px', height: '180px', background: 'radial-gradient(circle, rgba(216,243,220,0.5) 0%, transparent 70%)' }} />
+    </div>
+  )
+}
+
+function ProblemBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, rgba(239,68,68,0.03) 0px, rgba(239,68,68,0.03) 1px, transparent 1px, transparent 20px)' }} />
+      <svg style={{ position: 'absolute', top: '6%', right: '4%', opacity: 0.05 }} width="100" height="150" viewBox="0 0 60 90">
+        <rect x="20" y="0" width="20" height="52" rx="4" fill="#EF4444" />
+        <rect x="20" y="62" width="20" height="20" rx="4" fill="#EF4444" />
+      </svg>
+      <svg style={{ position: 'absolute', bottom: '-10px', left: '-5px', opacity: 0.04 }} width="180" height="180" viewBox="0 0 100 100">
+        <text x="0" y="90" fontSize="100" fontWeight="bold" fill="#F59E0B" fontFamily="Georgia, serif">£</text>
+      </svg>
+    </div>
+  )
+}
+
+function HowItWorksBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(45,106,79,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(45,106,79,0.06) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+      {['01', '02', '03'].map((n, i) => (
+        <div key={n} style={{ position: 'absolute', left: `${6 + i * 32}%`, bottom: '2%', fontSize: '200px', fontWeight: 900, color: 'rgba(45,106,79,0.035)', fontFamily: 'Georgia, serif', lineHeight: 1, userSelect: 'none' }}>{n}</div>
+      ))}
+    </div>
+  )
+}
+
+function ComparisonBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div key={i} style={{ position: 'absolute', inset: -60, borderRadius: '46%', border: `1px solid rgba(45,106,79,${0.04 + i * 0.008})`, transform: `scale(${0.35 + i * 0.22}) rotate(${i * 15}deg)`, transformOrigin: '52% 48%' }} />
+      ))}
+    </div>
+  )
+}
+
+function ContractTypesBg() {
+  const docs: Array<{ top?: string; bottom?: string; left?: string; right?: string; rotate: number; size: number }> = [
+    { top: '8%', left: '2%', rotate: -14, size: 58 },
+    { top: '12%', right: '4%', rotate: 9, size: 44 },
+    { top: '48%', left: '0.5%', rotate: 6, size: 52 },
+    { bottom: '12%', right: '2%', rotate: -9, size: 48 },
+    { bottom: '6%', left: '7%', rotate: 16, size: 38 },
+    { top: '38%', right: '1.5%', rotate: -6, size: 34 },
+  ]
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      {docs.map((p, i) => (
+        <svg key={i} style={{ position: 'absolute', opacity: 0.05, transform: `rotate(${p.rotate}deg)`, top: p.top, bottom: p.bottom, left: p.left, right: p.right }} width={p.size} height={Math.round(p.size * 1.3)} viewBox="0 0 40 52">
+          <path d="M0 0h28l12 12v40H0V0z" fill="#2D6A4F" />
+          <path d="M28 0l12 12H28V0z" fill="#1B4332" />
+          <rect x="6" y="20" width="28" height="2" rx="1" fill="white" opacity="0.5" />
+          <rect x="6" y="26" width="22" height="2" rx="1" fill="white" opacity="0.5" />
+          <rect x="6" y="32" width="25" height="2" rx="1" fill="white" opacity="0.5" />
+        </svg>
+      ))}
+    </div>
+  )
+}
+
+function TrustBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <div style={{ position: 'absolute', top: '-100px', right: '-80px', width: '520px', height: '520px', background: 'radial-gradient(circle, rgba(216,243,220,0.45) 0%, transparent 65%)' }} />
+      <div style={{ position: 'absolute', bottom: '-80px', left: '-60px', width: '420px', height: '420px', background: 'radial-gradient(circle, rgba(82,183,136,0.18) 0%, transparent 65%)' }} />
+      <svg style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.025 }} width="500" height="500" viewBox="0 0 24 24" fill="#2D6A4F">
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+      </svg>
+    </div>
+  )
+}
+
+function PricingBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <div style={{ position: 'absolute', top: '-30px', right: '-20px', width: '180px', height: '180px', border: '2px solid rgba(45,106,79,0.08)', transform: 'rotate(15deg)' }} />
+      <div style={{ position: 'absolute', top: '15px', right: '35px', width: '130px', height: '130px', border: '2px solid rgba(45,106,79,0.06)', transform: 'rotate(30deg)' }} />
+      <div style={{ position: 'absolute', bottom: '-25px', left: '-15px', width: '160px', height: '160px', border: '2px solid rgba(45,106,79,0.08)', transform: 'rotate(-18deg)' }} />
+      <div style={{ position: 'absolute', bottom: '25px', left: '30px', width: '100px', height: '100px', border: '2px solid rgba(45,106,79,0.06)', transform: 'rotate(-32deg)' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '700px', height: '320px', background: 'radial-gradient(ellipse at 50% 100%, rgba(216,243,220,0.55) 0%, transparent 60%)' }} />
+    </div>
+  )
+}
+
+function FaqBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%' }} viewBox="0 0 1440 70" preserveAspectRatio="none">
+        <path d="M0,35 C360,65 720,5 1080,35 C1260,50 1380,20 1440,35 L1440,0 L0,0 Z" fill="rgba(45,106,79,0.05)" />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(45,106,79,0.07) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+      <svg style={{ position: 'absolute', bottom: 0, left: 0, width: '100%' }} viewBox="0 0 1440 70" preserveAspectRatio="none">
+        <path d="M0,35 C360,5 720,65 1080,35 C1260,20 1380,50 1440,35 L1440,70 L0,70 Z" fill="rgba(45,106,79,0.05)" />
+      </svg>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -230,7 +340,9 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 text-center">
+      <section className="relative px-4 sm:px-6 lg:px-8 pt-20 pb-20 text-center" style={{ backgroundColor: '#FAFAF8' }}>
+        <HeroBg />
+        <div className="max-w-6xl mx-auto relative" style={{ zIndex: 1 }}>
         <motion.div variants={stagger} initial="hidden" animate="visible">
           <motion.div
             variants={fadeUp}
