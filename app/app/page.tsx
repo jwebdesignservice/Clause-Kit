@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+// import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import IntakeWizard, { type IntakeData } from './IntakeWizard'
 import {
@@ -48,6 +49,8 @@ interface ContractType {
   Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 }
 
+type ContractStatus = 'draft' | 'sent' | 'completed' | 'expired'
+
 interface SavedContract {
   id: string
   title: string
@@ -55,8 +58,12 @@ interface SavedContract {
   typeName: string
   party1: string
   party2: string
-  status: 'generated' | 'paid'
+  party1Email: string
+  party2Email: string
+  status: ContractStatus
   createdAt: string
+  sentAt?: string
+  completedAt?: string
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────────
@@ -157,9 +164,96 @@ async function initiateCheckout(contractId: string): Promise<void> {
   }
 }
 
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: ContractStatus }) {
+  const map: Record<ContractStatus, { bg: string; color: string; label: string }> = {
+    draft:     { bg: '#FEF3C7', color: '#92400E', label: 'Draft' },
+    sent:      { bg: '#DBEAFE', color: '#1E40AF', label: 'Sent' },
+    completed: { bg: '#D8F3DC', color: '#1B4332', label: 'Completed' },
+    expired:   { bg: '#FEE2E2', color: '#991B1B', label: 'Expired' },
+  }
+  const s = map[status] ?? map.draft
+  return <span className="text-xs font-bold px-2 py-0.5 uppercase tracking-wide" style={{ backgroundColor: s.bg, color: s.color }}>{s.label}</span>
+}
+
+// ── My Contracts Tab ──────────────────────────────────────────────────────────
+
+type ContractsTabFilter = 'all' | ContractStatus
+
+function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout }: {
+  savedContracts: SavedContract[]; searchQuery: string; onNew: () => void; onCheckout: (id: string) => void
+}) {
+  const [af, setAf] = useState<ContractsTabFilter>('all')
+  const counts: Record<ContractsTabFilter, number> = {
+    all: savedContracts.length,
+    draft: savedContracts.filter((c) => c.status === 'draft').length,
+    sent: savedContracts.filter((c) => c.status === 'sent').length,
+    completed: savedContracts.filter((c) => c.status === 'completed').length,
+    expired: savedContracts.filter((c) => c.status === 'expired').length,
+  }
+  const list = savedContracts.filter((c) => {
+    const mf = af === 'all' || c.status === af
+    const ms = !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.typeName.toLowerCase().includes(searchQuery.toLowerCase())
+    return mf && ms
+  })
+  const tabs: { key: ContractsTabFilter; label: string }[] = [
+    { key: 'all', label: 'All' }, { key: 'draft', label: 'Draft' }, { key: 'sent', label: 'Sent' }, { key: 'completed', label: 'Completed' }, { key: 'expired', label: 'Expired' },
+  ]
+  return (
+    <motion.div key="my-contracts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="font-display text-2xl font-bold" style={{ color: '#1B4332' }}>My Contracts</h1>
+        <button onClick={onNew} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white hover:opacity-90" style={{ backgroundColor: '#2D6A4F' }}>
+          <Plus className="w-4 h-4" /> New Contract
+        </button>
+      </div>
+      <div className="flex border-b mb-5" style={{ borderColor: '#E5E5E2' }}>
+        {tabs.map((t) => (
+          <button key={t.key} onClick={() => setAf(t.key)} className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px" style={af === t.key ? { borderBottomColor: '#2D6A4F', color: '#1B4332' } : { borderBottomColor: 'transparent', color: '#9CA3AF' }}>
+            {t.label}
+            {counts[t.key] > 0 && <span className="px-1.5 py-0.5 text-xs font-bold" style={af === t.key ? { backgroundColor: '#D8F3DC', color: '#1B4332' } : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }}>{counts[t.key]}</span>}
+          </button>
+        ))}
+      </div>
+      {list.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <div className="w-12 h-12 flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}><FileText className="w-6 h-6" style={{ color: '#2D6A4F' }} /></div>
+          <h2 className="font-display text-base font-bold mb-2" style={{ color: '#1B4332' }}>{searchQuery ? 'No contracts match your search' : af === 'all' ? 'No contracts yet' : `No ${af} contracts`}</h2>
+          {!searchQuery && af === 'all' && <button onClick={onNew} className="mt-3 flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}><Plus className="w-4 h-4" /> Create contract</button>}
+        </div>
+      ) : (
+        <div className="border" style={{ borderColor: '#E5E5E2' }}>
+          <div className="flex items-center gap-4 px-4 py-2.5 border-b text-xs font-bold uppercase tracking-widest" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#9CA3AF' }}>
+            <div className="flex-1">Contract</div><div className="w-24 hidden sm:block text-center">Status</div><div className="w-32 hidden md:block text-right">Date</div><div className="w-28 text-right">Action</div>
+          </div>
+          {list.map((c, i) => (
+            <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3.5 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
+              <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate mb-0.5" style={{ color: '#1B4332' }}>{c.title}</p>
+                <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{c.typeName}{c.party2 ? ` \u00B7 ${c.party2}` : ''}</p>
+              </div>
+              <div className="w-24 hidden sm:flex justify-center flex-shrink-0"><StatusBadge status={c.status} /></div>
+              <div className="w-32 hidden md:block text-right text-xs flex-shrink-0" style={{ color: '#9CA3AF' }}>{c.completedAt ? fmtDate(c.completedAt) : c.sentAt ? fmtDate(c.sentAt) : fmtDate(c.createdAt)}</div>
+              <div className="w-28 flex justify-end flex-shrink-0">
+                {c.status === 'draft' && <button onClick={() => onCheckout(c.id)} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Unlock</button>}
+                {c.status === 'sent' && <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1E40AF' }}><Eye className="w-3 h-3" /> Awaiting</span>}
+                {c.status === 'completed' && <a href={`/download/${c.id}`} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Download</a>}
+                {c.status === 'expired' && <button onClick={onNew} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#9CA3AF' }}><Plus className="w-3 h-3" /> Redo</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function AppDashboard() {
+  // const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [step, setStep] = useState<Step>(1)
   const [selectedType, setSelectedType] = useState<ContractType | null>(null)
@@ -230,9 +324,11 @@ export default function AppDashboard() {
         title: data.title ?? selectedType.title,
         typeId: selectedType.id,
         typeName: selectedType.title,
-        party1: intake.yourName ?? '',
-        party2: intake.theirName ?? '',
-        status: 'generated',
+        party1: (intake.yourName as string) ?? '',
+        party2: (intake.theirName as string) ?? '',
+        party1Email: (intake.yourEmail as string) ?? '',
+        party2Email: (intake.theirEmail as string) ?? '',
+        status: 'draft',
         createdAt: new Date().toISOString(),
       }
       const updated = [entry, ...loadSaved()]
@@ -269,14 +365,11 @@ export default function AppDashboard() {
 
   const stats = {
     total: savedContracts.length,
-    generated: savedContracts.filter((c) => c.status === 'generated').length,
-    paid: savedContracts.filter((c) => c.status === 'paid').length,
+    generated: savedContracts.filter((c) => c.status === 'draft').length,
+    paid: savedContracts.filter((c) => c.status === 'completed').length,
   }
 
-  const filtered = savedContracts.filter((c) =>
-    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.typeName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // filtered is used inside MyContractsTab — kept for search propagation
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -480,12 +573,7 @@ export default function AppDashboard() {
                             <p className="text-sm font-medium truncate" style={{ color: '#1B4332' }}>{c.title}</p>
                             <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName}</p>
                           </div>
-                          <span
-                            className="text-xs font-bold px-2 py-0.5 uppercase tracking-wide flex-shrink-0"
-                            style={c.status === 'paid' ? { backgroundColor: '#D8F3DC', color: '#1B4332' } : { backgroundColor: '#FEF3C7', color: '#92400E' }}
-                          >
-                            {c.status === 'paid' ? 'Downloaded' : 'Generated'}
-                          </span>
+                          <StatusBadge status={c.status} />
                           <span className="text-xs flex-shrink-0 hidden sm:block" style={{ color: '#9CA3AF' }}>{fmtDate(c.createdAt)}</span>
                         </div>
                       ))}
@@ -547,7 +635,7 @@ export default function AppDashboard() {
                         {LOADING_MESSAGES[loadingMsg]}
                       </motion.p>
                     </AnimatePresence>
-                    <p className="text-sm mb-6" style={{ color: '#6B7280' }}>GPT-4o is generating your bespoke UK contract&hellip;</p>
+                    <p className="text-sm mb-6" style={{ color: '#6B7280' }}>ClauseKit is generating your bespoke UK contract&hellip;</p>
                     <div className="w-56 overflow-hidden h-1" style={{ backgroundColor: '#E5E5E2' }}>
                       <motion.div className="h-full" style={{ backgroundColor: '#2D6A4F' }} initial={{ width: '5%' }} animate={{ width: '90%' }} transition={{ duration: 6, ease: 'easeInOut' }} />
                     </div>
@@ -646,78 +734,12 @@ export default function AppDashboard() {
 
             {/* ── MY CONTRACTS ── */}
             {activeTab === 'my-contracts' && (
-              <motion.div key="my-contracts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="p-6 lg:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h1 className="font-display text-2xl font-bold" style={{ color: '#1B4332' }}>My Contracts</h1>
-                    <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>{savedContracts.length} contract{savedContracts.length !== 1 ? 's' : ''} generated</p>
-                  </div>
-                  <button onClick={() => navigate('new-contract')} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ backgroundColor: '#2D6A4F' }}>
-                    <Plus className="w-4 h-4" /> New Contract
-                  </button>
-                </div>
-
-                {filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-24 text-center border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-                    <div className="w-14 h-14 flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}>
-                      <FileText className="w-7 h-7" style={{ color: '#2D6A4F' }} />
-                    </div>
-                    <h2 className="font-display text-lg font-bold mb-2" style={{ color: '#1B4332' }}>
-                      {searchQuery ? 'No contracts match your search' : 'No contracts yet'}
-                    </h2>
-                    <p className="text-sm mb-5 max-w-xs" style={{ color: '#6B7280' }}>
-                      {searchQuery ? 'Try a different search term.' : 'Contracts you generate will appear here.'}
-                    </p>
-                    {!searchQuery && (
-                      <button onClick={() => navigate('new-contract')} className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90" style={{ backgroundColor: '#2D6A4F' }}>
-                        <Plus className="w-4 h-4" /> Create your first contract
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="border" style={{ borderColor: '#E5E5E2' }}>
-                    {/* Header row */}
-                    <div className="flex items-center gap-4 px-4 py-2.5 border-b text-xs font-bold uppercase tracking-widest" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#9CA3AF' }}>
-                      <div className="flex-1">Contract</div>
-                      <div className="w-28 text-center hidden sm:block">Status</div>
-                      <div className="w-32 text-right hidden md:block">Created</div>
-                      <div className="w-24 text-right">Action</div>
-                    </div>
-                    {filtered.map((c, i) => (
-                      <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3.5 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
-                        <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate mb-0.5" style={{ color: '#1B4332' }}>{c.title}</p>
-                          <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{c.typeName}{c.party1 ? ` &middot; ${c.party1}` : ''}</p>
-                        </div>
-                        <div className="w-28 text-center hidden sm:block">
-                          <span className="text-xs font-bold px-2 py-0.5 uppercase tracking-wide"
-                            style={c.status === 'paid' ? { backgroundColor: '#D8F3DC', color: '#1B4332' } : { backgroundColor: '#FEF3C7', color: '#92400E' }}
-                          >
-                            {c.status === 'paid' ? 'Downloaded' : 'Generated'}
-                          </span>
-                        </div>
-                        <div className="w-32 text-right text-xs flex-shrink-0 hidden md:block" style={{ color: '#9CA3AF' }}>{fmtDate(c.createdAt)}</div>
-                        <div className="w-24 text-right flex-shrink-0">
-                          {c.status === 'generated' ? (
-                            <button
-                              onClick={() => initiateCheckout(c.id)}
-                              className="text-xs font-semibold flex items-center gap-1 ml-auto hover:opacity-70 transition-opacity"
-                              style={{ color: '#2D6A4F' }}
-                            >
-                              <Download className="w-3 h-3" /> Unlock
-                            </button>
-                          ) : (
-                            <a href={`/download/${c.id}`} className="text-xs font-semibold flex items-center gap-1 ml-auto hover:opacity-70 transition-opacity" style={{ color: '#2D6A4F' }}>
-                              <Download className="w-3 h-3" /> Download
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
+              <MyContractsTab
+                savedContracts={savedContracts}
+                searchQuery={searchQuery}
+                onNew={() => navigate('new-contract')}
+                onCheckout={initiateCheckout}
+              />
             )}
 
             {/* ── TEMPLATES ── */}
@@ -844,7 +866,7 @@ export default function AppDashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
                   {[
                     { Icon: Shield, label: 'Solicitor-Reviewed' },
-                    { Icon: Zap, label: 'GPT-4o Powered' },
+                    { Icon: Zap, label: 'ClauseKit Powered' },
                     { Icon: FileText, label: 'UK Law Only' },
                     { Icon: Lock, label: 'GDPR Compliant' },
                   ].map((t) => (

@@ -85,7 +85,7 @@ const FAQS = [
   },
   {
     q: 'Is my data secure?',
-    a: 'We don\u2019t store your contract content after generation. Your information is processed by OpenAI\u2019s GPT-4o and immediately discarded. We never share your data with third parties.',
+    a: 'We don\u2019t store your contract content after generation. Your information is processed securely and immediately discarded after your document is generated. We never share your data with third parties.',
   },
   {
     q: 'Which law applies to the contracts?',
@@ -98,7 +98,7 @@ const FAQS = [
 ]
 
 const MARQUEE_TEXT = 'Freelancers \u00B7 Web Agencies \u00B7 Consultants \u00B7 Tradespeople \u00B7 Care Providers \u00B7 Small Businesses \u00B7 Designers \u00B7 Developers \u00B7 Recruiters \u00B7 '
-const PROOF_TEXT = '2,000+ contracts generated \u00B7 Trusted by UK freelancers \u00B7 Reviewed by UK solicitors \u00B7 GPT-4o powered \u00B7 IR35 aware \u00B7 GDPR compliant \u00B7 English & Welsh law \u00B7 '
+const PROOF_TEXT = '2,000+ contracts generated \u00B7 Trusted by UK freelancers \u00B7 Reviewed by UK solicitors \u00B7 ClauseKit powered \u00B7 IR35 aware \u00B7 GDPR compliant \u00B7 English & Welsh law \u00B7 '
 
 // ── WhatsApp SVG ───────────────────────────────────────────────────────────
 
@@ -238,7 +238,7 @@ export default function HomePage() {
             style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}
           >
             <Shield className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
-            GPT-4o Powered &middot; UK Law &middot; Solicitor-Reviewed
+            ClauseKit &middot; UK Law &middot; Solicitor-Reviewed
           </motion.div>
 
           <motion.h1
@@ -372,8 +372,8 @@ export default function HomePage() {
               },
               {
                 n: '02',
-                title: 'AI drafts your contract',
-                body: 'GPT-4o generates a bespoke UK-law document with all the right clauses for your exact situation.',
+                title: 'ClauseKit drafts your contract',
+                body: 'ClauseKit generates a bespoke UK-law document with all the right clauses for your exact situation.',
               },
               {
                 n: '03',
@@ -546,7 +546,7 @@ export default function HomePage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
             {[
               { Icon: Shield, title: 'Solicitor-Reviewed', body: 'Every contract type has been reviewed by a qualified UK solicitor before it ever reaches you.' },
-              { Icon: Zap, title: 'GPT-4o Powered', body: 'The most advanced AI available. Not a template \u2014 a genuinely bespoke document, every time.' },
+              { Icon: Zap, title: 'ClauseKit Powered', body: 'Not a template \u2014 a genuinely bespoke document built for your exact situation, every time.' },
               { Icon: FileText, title: 'UK Law Only', body: 'English & Welsh law, Late Payment of Commercial Debts Act 1998, IR35 awareness baked in.' },
               { Icon: Lock, title: 'GDPR Compliant', body: 'We don\u2019t store your contract content. Generate, pay, download \u2014 that\u2019s it.' },
             ].map((t) => (
@@ -748,7 +748,7 @@ export default function HomePage() {
             </a>
           </div>
           <p className="text-sm" style={{ color: '#D8F3DC' }}>
-            Solicitor-reviewed &middot; GPT-4o powered &middot; UK law only
+            Solicitor-reviewed &middot; ClauseKit powered &middot; UK law only
           </p>
         </motion.div>
       </section>
