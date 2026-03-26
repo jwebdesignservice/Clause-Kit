@@ -741,14 +741,6 @@ export default function AppDashboard() {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => navigate('new-contract')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#2D6A4F' }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              New Contract
-            </button>
             {session ? (
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#2D6A4F' }} title={session.user?.email ?? ''}>
