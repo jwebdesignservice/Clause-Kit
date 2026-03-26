@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-// import { useSession, signOut } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import IntakeWizard, { type IntakeData } from './IntakeWizard'
 import {
@@ -253,7 +253,7 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout }: {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function AppDashboard() {
-  // const { data: session } = useSession()
+  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [step, setStep] = useState<Step>(1)
   const [selectedType, setSelectedType] = useState<ContractType | null>(null)
@@ -446,6 +446,22 @@ export default function AppDashboard() {
       {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
+        {/* ── UK TRUST BANNER ── */}
+        <div className="flex items-center justify-center gap-3 px-4 py-2 text-xs font-medium flex-shrink-0" style={{ backgroundColor: '#1B4332', color: '#D8F3DC' }}>
+          <span className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+            UK law only
+          </span>
+          <span style={{ color: '#52B788' }}>·</span>
+          <span>IR35-aware</span>
+          <span style={{ color: '#52B788' }}>·</span>
+          <span>Solicitor-reviewed</span>
+          <span style={{ color: '#52B788' }}>·</span>
+          <span>Not a template — bespoke every time</span>
+          <span style={{ color: '#52B788' }}>·</span>
+          <span className="font-bold" style={{ color: '#52B788' }}>£7 to download</span>
+        </div>
+
         {/* Top bar */}
         <div className="flex items-center gap-3 px-4 h-12 border-b flex-shrink-0 bg-white" style={{ borderColor: '#E5E5E2' }}>
           <button className="md:hidden p-1 text-gray-500" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Menu">
@@ -474,9 +490,20 @@ export default function AppDashboard() {
               <Plus className="w-3.5 h-3.5" />
               New Contract
             </button>
-            <div className="w-7 h-7 flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#2D6A4F' }}>
-              JW
-            </div>
+            {session ? (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#2D6A4F' }} title={session.user?.email ?? ''}>
+                  {(session.user?.name ?? session.user?.email ?? 'U').slice(0, 2).toUpperCase()}
+                </div>
+                <button onClick={() => signOut({ callbackUrl: '/' })} className="text-xs hover:opacity-70 hidden sm:block" style={{ color: '#9CA3AF' }}>
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <Link href="/auth/signin" className="text-xs font-semibold px-3 py-1.5 border hover:bg-[#D8F3DC]" style={{ borderColor: '#2D6A4F', color: '#2D6A4F' }}>
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
 
