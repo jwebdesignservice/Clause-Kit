@@ -383,8 +383,9 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   const parseBlock = (text: string): { type: 'section' | 'party' | 'signature' | 'footer' | 'body'; heading?: string; body: string } => {
     const t = text.trim()
     if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
-    if (t.startsWith('PARTY 1') || t.startsWith('PARTY 2')) return { type: 'party', body: t }
-    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || t.includes('___')) return { type: 'signature', body: t }
+    if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
+    if (t.startsWith('PARTY 1 —') || t.startsWith('PARTY 2 —') || t.startsWith('PARTY 1—') || t.startsWith('PARTY 2—')) return { type: 'signature', body: t }
+    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || (t.includes('___') && (t.includes('Full Name') || t.includes('Date')))) return { type: 'signature', body: t }
 
     // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
     const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
@@ -465,22 +466,61 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               if (parsed.type === 'party') {
+                // Parse party info into structured fields
+                const isP1 = block.includes('PARTY 1')
+                const label = isP1 ? 'Service Provider' : 'Client'
+                const partyNum = isP1 ? '1' : '2'
+                // Extract fields from "Name: X Address: Y Email: Z" format
+                const nameMatch = block.match(/Name:\s*([^A-Z][^\n]*?)(?:\s*Address:|$)/i)
+                const addressMatch = block.match(/Address:\s*([^\n]*?)(?:\s*Email:|$)/i)
+                const emailMatch = block.match(/Email:\s*([^\s\n]+)/i)
+                const pName = nameMatch?.[1]?.trim() ?? ''
+                const pAddress = addressMatch?.[1]?.trim() ?? ''
+                const pEmail = emailMatch?.[1]?.trim() ?? ''
+
                 return (
-                  <div key={i} className="mb-4 p-4 border-l-4" style={{ borderLeftColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
-                      className="text-sm leading-relaxed outline-none"
-                      style={{ color: '#374151', fontWeight: 400 }}
-                    >
-                      {block}
+                  <div key={i} className="mb-4 p-5 border-l-4" style={{ borderLeftColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>
+                      Party {partyNum} &mdash; {label}
+                    </p>
+                    <div className="space-y-1.5">
+                      {pName && (
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Name</span>
+                          <span className="text-sm" style={{ color: '#1B4332' }}>{pName}</span>
+                        </div>
+                      )}
+                      {pAddress && (
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Address</span>
+                          <span className="text-sm" style={{ color: '#374151' }}>{pAddress}</span>
+                        </div>
+                      )}
+                      {pEmail && (
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Email</span>
+                          <span className="text-sm" style={{ color: '#374151' }}>{pEmail}</span>
+                        </div>
+                      )}
                     </div>
+                    {!pName && !pAddress && !pEmail && (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
+                        className="text-sm leading-relaxed outline-none"
+                        style={{ color: '#374151', fontWeight: 400 }}
+                      >
+                        {block}
+                      </div>
+                    )}
                   </div>
                 )
               }
 
               if (parsed.type === 'signature') {
+                // Only render the interactive SignatureBlock once (for the first signature block detected)
+                if (i > 0 && blocks.slice(0, i).some((b) => parseBlock(b).type === 'signature')) return null
                 return <SignatureBlock key={i} party1Name={contract.party1 ?? ''} party2Name={contract.party2 ?? ''} />
               }
 
