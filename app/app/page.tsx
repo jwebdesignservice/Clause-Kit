@@ -526,11 +526,11 @@ function EditableParties({ contract, intake, onUpdate }: {
   return (
     <>
       {/* Provider card */}
-      <div className="border mb-4" style={{ borderColor: '#E5E5E2' }}>
-        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Provider</p>
+      <div className="border mb-4" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#1B4332' }}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#1B4332' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white">Provider</p>
           {!editing && (
-            <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs font-medium hover:opacity-70" style={{ color: '#2D6A4F' }}>
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs font-medium hover:opacity-70 text-white">
               <Pen className="w-3 h-3" /> Edit
             </button>
           )}
@@ -543,9 +543,9 @@ function EditableParties({ contract, intake, onUpdate }: {
       </div>
 
       {/* Client card */}
-      <div className="border mb-4" style={{ borderColor: '#E5E5E2' }}>
-        <div className="px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Client</p>
+      <div className="border mb-4" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#2D6A4F' }}>
+        <div className="px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#D8F3DC' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#1B4332' }}>Client</p>
         </div>
         <div className="px-4 py-3 space-y-3">
           <Field label="Name" value={p2Name} onChange={setP2Name} />
