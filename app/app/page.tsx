@@ -374,7 +374,25 @@ export default function AppDashboard() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#FAFAF8' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#FAFAF8' }}>
+
+      {/* ── UK TRUST BANNER (full width) ── */}
+      <div className="flex items-center justify-center gap-3 px-4 py-2 text-xs font-medium flex-shrink-0 w-full" style={{ backgroundColor: '#1B4332', color: '#D8F3DC' }}>
+        <span className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          UK law only
+        </span>
+        <span style={{ color: '#52B788' }}>·</span>
+        <span>IR35-aware</span>
+        <span style={{ color: '#52B788' }}>·</span>
+        <span>Solicitor-reviewed</span>
+        <span style={{ color: '#52B788' }}>·</span>
+        <span>Not a template — bespoke every time</span>
+        <span style={{ color: '#52B788' }}>·</span>
+        <span className="font-bold" style={{ color: '#52B788' }}>£7 to download</span>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
 
       {/* ── SIDEBAR ── */}
       <aside
@@ -445,22 +463,6 @@ export default function AppDashboard() {
 
       {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* ── UK TRUST BANNER ── */}
-        <div className="flex items-center justify-center gap-3 px-4 py-2 text-xs font-medium flex-shrink-0" style={{ backgroundColor: '#1B4332', color: '#D8F3DC' }}>
-          <span className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-            UK law only
-          </span>
-          <span style={{ color: '#52B788' }}>·</span>
-          <span>IR35-aware</span>
-          <span style={{ color: '#52B788' }}>·</span>
-          <span>Solicitor-reviewed</span>
-          <span style={{ color: '#52B788' }}>·</span>
-          <span>Not a template — bespoke every time</span>
-          <span style={{ color: '#52B788' }}>·</span>
-          <span className="font-bold" style={{ color: '#52B788' }}>£7 to download</span>
-        </div>
 
         {/* Top bar */}
         <div className="flex items-center gap-3 px-4 h-12 border-b flex-shrink-0 bg-white" style={{ borderColor: '#E5E5E2' }}>
@@ -929,6 +931,7 @@ export default function AppDashboard() {
 
           </AnimatePresence>
         </main>
+      </div>
       </div>
     </div>
   )
