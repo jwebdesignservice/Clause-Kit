@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
-import { markPaid, setPaymentStatus } from '@/lib/payment-store';
+import { markPaid, setPaymentStatus, setSubscriptionStatus } from '@/lib/payment-store';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -29,11 +29,20 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const contractId = session.metadata?.contractId;
 
-      if (contractId) {
+      if (session.mode === 'subscription') {
+        // Subscription checkout — mark customer as subscribed
+        if (session.customer && session.subscription) {
+          setSubscriptionStatus(
+            session.customer as string,
+            session.subscription as string,
+            'active'
+          );
+        }
+      } else if (contractId) {
+        // One-time payment
         if (session.payment_status === 'paid') {
           markPaid(session.id);
         } else {
-          // Async payment method (e.g. bank transfer) — still pending
           setPaymentStatus(session.id, contractId, 'pending');
         }
       }
@@ -43,6 +52,23 @@ export async function POST(req: NextRequest) {
     case 'checkout.session.async_payment_succeeded': {
       const session = event.data.object as Stripe.Checkout.Session;
       markPaid(session.id);
+      break;
+    }
+
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated': {
+      const sub = event.data.object as Stripe.Subscription;
+      setSubscriptionStatus(
+        sub.customer as string,
+        sub.id,
+        sub.status === 'active' ? 'active' : 'inactive'
+      );
+      break;
+    }
+
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object as Stripe.Subscription;
+      setSubscriptionStatus(sub.customer as string, sub.id, 'inactive');
       break;
     }
 

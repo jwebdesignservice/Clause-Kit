@@ -383,13 +383,42 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
 
 // ── Signature block with draw canvas + input fields ───────────────────────────
 
-function SignatureBlock({ party1Name, party2Name }: { party1Name: string; party2Name: string }) {
+interface SignatureState {
+  sig1Empty: boolean
+  name1: string
+  date1: string
+}
+
+function SignatureBlock({ party1Name, party2Name, onStateChange }: {
+  party1Name: string; party2Name: string
+  onStateChange?: (state: SignatureState) => void
+}) {
   const sig1Ref = useRef<SignatureCanvas>(null)
   const sig2Ref = useRef<SignatureCanvas>(null)
   const [name1, setName1] = useState('')
   const [name2, setName2] = useState('')
   const [date1, setDate1] = useState('')
   const [date2, setDate2] = useState('')
+
+  // Notify parent of state changes
+  useEffect(() => {
+    onStateChange?.({
+      sig1Empty: !sig1Ref.current || sig1Ref.current.isEmpty(),
+      name1,
+      date1,
+    })
+  }, [name1, date1]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const inputCls = "w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+  const inputSty = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
+
+  const handleSigEnd = () => {
+    onStateChange?.({
+      sig1Empty: !sig1Ref.current || sig1Ref.current.isEmpty(),
+      name1,
+      date1,
+    })
+  }
 
   return (
     <div className="mt-10 pt-6 border-t-2" style={{ borderColor: '#1B4332' }}>
@@ -399,53 +428,55 @@ function SignatureBlock({ party1Name, party2Name }: { party1Name: string; party2
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Party 1 */}
+        {/* Party 1 — Sender (required) */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>Party 1 {party1Name ? `\u2014 ${party1Name}` : ''}</p>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#1B4332' }}>Provider {party1Name ? `\u2014 ${party1Name}` : ''}</p>
+          <p className="text-xs mb-4" style={{ color: '#EF4444' }}>* Required before sending</p>
           <div className="mb-4">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature</p>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature <span style={{ color: '#EF4444' }}>*</span></p>
             <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
               <SignatureCanvas
                 ref={sig1Ref}
+                onEnd={handleSigEnd}
                 canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none' } }}
                 backgroundColor="transparent"
                 penColor="#1a1a1a"
               />
             </div>
-            <button onClick={() => sig1Ref.current?.clear()} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
+            <button onClick={() => { sig1Ref.current?.clear(); handleSigEnd() }} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
           </div>
           <div className="mb-3">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name</p>
-            <input type="text" value={name1} onChange={(e) => setName1(e.target.value)} placeholder="Type your full name" className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name <span style={{ color: '#EF4444' }}>*</span></p>
+            <input type="text" value={name1} onChange={(e) => setName1(e.target.value)} placeholder="Type your full name" className={inputCls} style={inputSty} />
           </div>
           <div>
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date</p>
-            <input type="date" value={date1} onChange={(e) => setDate1(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date <span style={{ color: '#EF4444' }}>*</span></p>
+            <input type="date" value={date1} onChange={(e) => setDate1(e.target.value)} className={inputCls} style={inputSty} />
           </div>
         </div>
 
-        {/* Party 2 */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>Party 2 {party2Name ? `\u2014 ${party2Name}` : ''}</p>
+        {/* Party 2 — Client (filled when they receive) */}
+        <div style={{ opacity: 0.5 }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#1B4332' }}>Client {party2Name ? `\u2014 ${party2Name}` : ''}</p>
+          <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>Completed when client signs</p>
           <div className="mb-4">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature</p>
             <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
               <SignatureCanvas
                 ref={sig2Ref}
-                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none' } }}
+                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none', pointerEvents: 'none' } }}
                 backgroundColor="transparent"
                 penColor="#1a1a1a"
               />
             </div>
-            <button onClick={() => sig2Ref.current?.clear()} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
           </div>
           <div className="mb-3">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name</p>
-            <input type="text" value={name2} onChange={(e) => setName2(e.target.value)} placeholder="Type your full name" className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+            <input type="text" value={name2} onChange={(e) => setName2(e.target.value)} disabled placeholder="Awaiting client" className={inputCls} style={{ ...inputSty, cursor: 'not-allowed' }} />
           </div>
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date</p>
-            <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+            <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)} disabled className={inputCls} style={{ ...inputSty, cursor: 'not-allowed' }} />
           </div>
         </div>
       </div>
@@ -576,6 +607,10 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
   const [editableTitle, setEditableTitle] = useState(contract.title)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [sigState, setSigState] = useState<SignatureState>({ sig1Empty: true, name1: '', date1: '' })
+  const [sigError, setSigError] = useState<string | null>(null)
+
+  const senderReady = !sigState.sig1Empty && !!sigState.name1.trim() && !!sigState.date1
 
   // Debounced save
   useEffect(() => {
@@ -705,9 +740,8 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               if (parsed.type === 'signature') {
-                // Only render the interactive SignatureBlock once (for the first signature block detected)
                 if (i > 0 && blocks.slice(0, i).some((b) => parseBlock(b).type === 'signature')) return null
-                return <SignatureBlock key={i} party1Name={contract.party1 ?? ''} party2Name={contract.party2 ?? ''} />
+                return <SignatureBlock key={i} party1Name={contract.party1 ?? ''} party2Name={contract.party2 ?? ''} onStateChange={setSigState} />
               }
 
               if (parsed.type === 'footer') {
@@ -787,6 +821,12 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
 
         {/* Download / paywall */}
         <div className="flex-shrink-0 border-t p-4 space-y-2" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+          {sigError && (
+            <div className="flex items-start gap-2 px-3 py-2.5 text-xs border mb-2" style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+              <span className="font-bold flex-shrink-0">!</span>
+              <span>{sigError}</span>
+            </div>
+          )}
           {contract.status === 'completed' ? (
             <a href={`/download/${contract.id}`} className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
               <Download className="w-4 h-4" /> Download PDF + Word
@@ -795,6 +835,16 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
             <>
               <button
                 onClick={async () => {
+                  // Validate sender signature before proceeding
+                  if (!senderReady) {
+                    const missing: string[] = []
+                    if (sigState.sig1Empty) missing.push('signature')
+                    if (!sigState.name1.trim()) missing.push('full name')
+                    if (!sigState.date1) missing.push('date')
+                    setSigError(`Please complete your ${missing.join(', ')} before sending.`)
+                    return
+                  }
+                  setSigError(null)
                   setCheckoutLoading(true)
                   await onCheckout(contract.id)
                   setCheckoutLoading(false)
@@ -803,9 +853,11 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#2D6A4F' }}
               >
-                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : <><Download className="w-4 h-4" /> £7 — Download PDF + Word</>}
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting&hellip;</> : <><Download className="w-4 h-4" /> &pound;7 &mdash; Sign &amp; Send</>}
               </button>
-              <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>Free to edit · Pay £7 to download · Secure via Stripe</p>
+              <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                {senderReady ? 'Ready to send \u2014 secure payment via Stripe' : 'Complete your signature below to send'}
+              </p>
             </>
           )}
         </div>
