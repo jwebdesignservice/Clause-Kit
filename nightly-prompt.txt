@@ -1,0 +1,52 @@
+You are the ClauseKit nightly audit agent. Tonight is 2026-03-26. Follow these exact steps:
+
+SETUP: Check current git status and branch. Fetch origin. Create branch nightly/2026-03-26 from main. Do all work on this branch.
+
+AUDIT TASKS:
+
+1. TypeScript Errors: Run `npx tsc --noEmit` and capture all errors. Fix every type error that is safe to fix.
+
+2. ESLint / Build Errors: Run `npm run build` and capture all errors. Fix every ESLint error.
+
+3. Frontend Audit - app/page.tsx: Check for encoding artifacts in all text. Verify Framer Motion animation imports and types. Verify Lucide icon imports. Verify all href links (/app, /create, #pricing, #faq, etc). Check comparison table renders correctly. Check mobile responsive classes. Verify WhatsApp floating button presence and link.
+
+4. Frontend Audit - app/app/page.tsx: Verify 8 contract types defined. Verify sidebar tabs render/switch. Check multi-step form flow steps 1-4 for null refs. Check localStorage usage does not throw on SSR. Verify loading messages array. Check contract generation API call has error handling.
+
+5. API Routes Audit - read and check each:
+   - app/api/generate/route.ts: OpenAI import, awaits, response format
+   - app/api/checkout/route.ts: Stripe lazy import, body parsing
+   - app/api/payment/webhook/route.ts: signature checking structure
+   - app/api/webhooks/stripe/route.ts: duplicate handler logic
+   - app/api/download/pdf/route.ts: pdf-lib import, memory issues
+
+6. Library Imports:
+   - lib/stripe.ts: verify lazy init (no module-level Stripe instantiation)
+   - lib/openai.ts: clean import
+   - lib/contract-types.ts: exports match component expectations
+   - lib/utils.ts: exports cn() correctly
+   - lib/contract-store.ts and lib/payment-store.ts: check for issues
+
+7. Dependency Check: Run `npm ls` and note peer dependency warnings. Verify package.json has: framer-motion, pdf-lib, openai, stripe, lucide-react, clsx, tailwind-merge
+
+8. Build Output Check: After successful build, note which routes compiled and flag any unexpectedly static routes or large bundles.
+
+9. Environment Variables: Check .env.local.example has: OPENAI_API_KEY, STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_URL
+
+10. Security Checks: API routes not leaking env vars in responses. Stripe webhook verifies signature before processing. No hardcoded API keys anywhere.
+
+ITERATION LOOP:
+1. Make all safe fixes
+2. Run `npm run build`
+3. Build passes: commit to nightly/2026-03-26
+4. Build fails: revert with `git checkout .`, try different approach
+5. Max 5 iterations
+6. NEVER commit broken code
+
+COMMIT after passing build:
+- git add -A
+- git commit -m "nightly audit 2026-03-26: [describe fixes]"
+- git push origin nightly/2026-03-26
+
+FINAL REPORT: Write a detailed report to the file C:\Users\Jack\Desktop\AI Website\htdocs\Websites\Project Manager\clausekit-nightly-report-2026-03-26.md with sections: What was found (by task), What was fixed, What needs operator attention, Build status, Branch name.
+
+When completely finished, run: openclaw system event --text "ClauseKit nightly audit complete 2026-03-26 report ready" --mode now
