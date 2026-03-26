@@ -483,8 +483,19 @@ export async function POST(req: NextRequest) {
   const title = deriveTitle(contractType, fields)
   const createdAt = new Date().toISOString()
 
+  const party1 = {
+    name: (fields.yourName as string) ?? '',
+    email: (fields.yourEmail as string) ?? '',
+    address: (fields.yourAddress as string) ?? '',
+  }
+  const party2 = {
+    name: (fields.theirName as string) ?? '',
+    email: (fields.theirEmail as string) ?? '',
+    address: (fields.theirAddress as string) ?? '',
+  }
+
   try {
-    saveContract({ id: contractId, contractType, title, content: contractContent, createdAt })
+    saveContract({ id: contractId, contractType, title, content: contractContent, createdAt, party1, party2, status: 'draft' })
   } catch (err) {
     console.error('Failed to save contract to store:', err)
   }
