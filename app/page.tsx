@@ -401,7 +401,7 @@ export default function HomePage() {
       <Marquee text={PROOF_TEXT} bgClass="bg-[#2D6A4F]" textClass="text-white opacity-90" />
 
       {/* ── PAIN ── */}
-      <Section id="problem" className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+      <Section id="problem" className="relative py-20" style={{ backgroundColor: '#FFF8F5' }}>
         <ProblemBg />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
@@ -526,7 +526,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── COMPARISON TABLE ── */}
-      <Section className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+      <Section className="relative py-20" style={{ backgroundColor: '#F0FDF4' }}>
         <ComparisonBg />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
@@ -540,7 +540,7 @@ export default function HomePage() {
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
-                  <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#FAFAF8' }}>
+                  <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#F0FDF4' }}>
                     Feature
                   </th>
                   <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
@@ -552,13 +552,13 @@ export default function HomePage() {
                       Best option
                     </span>
                   </th>
-                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Solicitor</th>
-                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#FAFAF8', color: '#6B7280' }}>Template Website</th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Solicitor</th>
+                  <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Template Website</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON_ROWS.map((row, i) => (
-                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : ''} style={{ backgroundColor: i % 2 !== 0 ? '#FAFAF8' : undefined }}>
+                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : ''} style={{ backgroundColor: i % 2 !== 0 ? '#F0FDF4' : undefined }}>
                     <td className="px-5 py-3.5 font-medium" style={{ color: '#374151' }}>{row.feature}</td>
                     <td className="px-5 py-3.5 text-center" style={{ backgroundColor: i % 2 === 0 ? '#F0FAF4' : '#EDFAF2' }}>
                       {row.ck !== null ? (
@@ -651,7 +651,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── TRUST SIGNALS ── */}
-      <Section className="relative py-20" style={{ backgroundColor: '#FAFAF8' }}>
+      <Section className="relative py-20" style={{ backgroundColor: '#F0FDF4' }}>
         <TrustBg />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
@@ -776,40 +776,6 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* ── WHATSAPP CTA BOX ── */}
-      <section className="py-16" style={{ backgroundColor: '#FAFAF8' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.5 }}
-            className="p-10 sm:p-14 text-center text-white max-w-3xl mx-auto"
-            style={{ backgroundColor: '#1B4332' }}
-          >
-            <h2 className="font-display text-2xl sm:text-3xl font-bold mb-4">
-              Not sure which contract you need?
-            </h2>
-            <p className="text-base mb-8" style={{ color: '#D8F3DC' }}>
-              Message us on WhatsApp. We&rsquo;ll tell you exactly which contract type fits your situation.
-            </p>
-            <a
-              href="https://wa.me/447700900000"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#25D366' }}
-            >
-              <WhatsAppIcon className="w-5 h-5" />
-              Chat with us on WhatsApp
-            </a>
-            <p className="mt-5 text-sm" style={{ color: '#52B788' }}>
-              &bull; Usually replies within an hour &bull; Free advice &bull; No obligation
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
       {/* ── FAQ ── */}
       <Section id="faq" className="relative py-20 bg-white">
         <FaqBg />
@@ -884,7 +850,7 @@ export default function HomePage() {
                 </div>
                 <span className="font-bold text-white">ClauseKit</span>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: '#52B788' }}>
+              <p className="text-sm leading-relaxed" style={{ color: '#D8F3DC' }}>
                 AI contracts for UK freelancers & small businesses
               </p>
             </div>
@@ -894,7 +860,7 @@ export default function HomePage() {
               <ul className="space-y-2">
                 {['Freelance', 'NDA', 'Retainer', 'Subcontractor', 'Service', 'T&Cs', 'Late Payment', 'Employment'].map((t) => (
                   <li key={t}>
-                    <Link href="/app" className="text-sm transition-colors hover:text-white" style={{ color: '#52B788' }}>{t}</Link>
+                    <Link href="/app" className="text-sm transition-colors hover:opacity-70" style={{ color: '#FFFFFF' }}>{t}</Link>
                   </li>
                 ))}
               </ul>
@@ -910,7 +876,7 @@ export default function HomePage() {
                   { label: 'WhatsApp', href: 'https://wa.me/447700900000' },
                 ].map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-sm transition-colors hover:text-white" style={{ color: '#52B788' }}>{l.label}</Link>
+                    <Link href={l.href} className="text-sm transition-colors hover:opacity-70" style={{ color: '#FFFFFF' }}>{l.label}</Link>
                   </li>
                 ))}
               </ul>
@@ -932,12 +898,12 @@ export default function HomePage() {
           </div>
 
           <div className="border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3" style={{ borderColor: '#2D6A4F' }}>
-            <p className="text-xs" style={{ color: '#52B788' }}>
+            <p className="text-xs" style={{ color: '#D8F3DC' }}>
               &copy; 2026 ClauseKit. AI-generated contracts. Not legal advice. ClauseKit Ltd.
             </p>
             <div className="flex items-center gap-5">
-              <Link href="/privacy" className="text-xs hover:text-white transition-colors" style={{ color: '#52B788' }}>Privacy</Link>
-              <Link href="/terms" className="text-xs hover:text-white transition-colors" style={{ color: '#52B788' }}>Terms</Link>
+              <Link href="/privacy" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#FFFFFF' }}>Privacy</Link>
+              <Link href="/terms" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#FFFFFF' }}>Terms</Link>
             </div>
           </div>
         </div>
