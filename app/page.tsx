@@ -73,7 +73,7 @@ const COMPARISON_ROWS = [
 const FAQS = [
   {
     q: 'Is this real legal advice?',
-    a: 'ClauseKit generates AI-drafted contracts that have been reviewed by a qualified UK solicitor. They are not a substitute for personalised legal advice, but they are significantly more robust than generic templates and are drafted under UK law.',
+    a: 'ClauseKit generates professionally drafted contracts that have been reviewed by a qualified UK solicitor. They are not a substitute for personalised legal advice, but they are significantly more robust than generic templates and are drafted under UK law.',
   },
   {
     q: 'What makes ClauseKit different to free template sites?',
@@ -851,7 +851,7 @@ export default function HomePage() {
                 <span className="font-bold text-white">ClauseKit</span>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: '#D8F3DC' }}>
-                AI contracts for UK freelancers & small businesses
+                Professional contracts for UK freelancers & small businesses
               </p>
             </div>
 
@@ -899,7 +899,7 @@ export default function HomePage() {
 
           <div className="border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3" style={{ borderColor: '#2D6A4F' }}>
             <p className="text-xs" style={{ color: '#D8F3DC' }}>
-              &copy; 2026 ClauseKit. AI-generated contracts. Not legal advice. ClauseKit Ltd.
+              &copy; 2026 ClauseKit. Not legal advice. ClauseKit Ltd.
             </p>
             <div className="flex items-center gap-5">
               <Link href="/privacy" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#FFFFFF' }}>Privacy</Link>

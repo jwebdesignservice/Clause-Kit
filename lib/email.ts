@@ -20,7 +20,7 @@ function baseTemplate(bodyHtml: string): string {
   </div>
   <div style="padding:32px;">${bodyHtml}</div>
   <div style="padding:16px 32px;border-top:1px solid #E5E5E2;background:#FAFAF8;">
-    <p style="margin:0;font-size:11px;color:#9CA3AF;">ClauseKit &mdash; AI-generated contracts. Not legal advice. &copy; 2026 ClauseKit Ltd.</p>
+    <p style="margin:0;font-size:11px;color:#9CA3AF;">ClauseKit &mdash; Professional UK contracts. Not legal advice. &copy; 2026 ClauseKit Ltd.</p>
   </div>
 </div>
 </body></html>`
