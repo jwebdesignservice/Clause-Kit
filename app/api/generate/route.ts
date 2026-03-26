@@ -75,14 +75,29 @@ MANDATORY LEGAL CLAUSES — INCLUDE IN EVERY CONTRACT:
 - Confidentiality: Both parties keep confidential information private during and after the Agreement. Standard exceptions: (a) publicly available information; (b) independently developed information; (c) legally compelled disclosure.
 - Termination consequences: All outstanding invoices become immediately due on termination.
 
+CONTENT FORMATTING WITHIN SECTIONS:
+- For SCOPE OF WORK, DELIVERABLES, and similar list sections: use bullet points with a dash prefix. Format each item as:
+  - **Item name** — description of the item
+  Example:
+  - **Homepage** — 9-section layout including hero, trust bar, services overview, testimonials, CTA and footer
+  - **Contact Page** — enquiry form with email integration and Google Maps embed
+- For FEES & PAYMENT sections: present fees as a structured table using this exact format:
+  ITEM | AMOUNT
+  [item description] | [amount or "Included"]
+  [item description] | [amount]
+  TOTAL | [total amount]
+  Follow the table with payment schedule as bullet points.
+- For TIMELINES: use bullet points for milestones
+- For all other sections: use clear paragraphs. Where listing multiple items or conditions, use bullet points with dash prefix.
+- Bold key terms by wrapping in double asterisks: **term**
+- Sub-headings within sections: use the format "Sub-heading:" on its own line, followed by content below
+
 PROFESSIONAL STANDARDS:
 - Use specific values from the data provided (names, amounts, dates) — never use placeholder brackets
 - Plain English throughout — formal but not unnecessarily complex
 - Be specific: "7 days written notice" not "reasonable notice"
-- Fees must be presented in a structured breakdown showing item and amount
-- If payment is split, show each instalment clearly (amount, when due, conditions)
 - Target length: 800–1,400 words (more for complex types like freelance/employment)
-- No markdown code fences, no asterisk formatting — clean plain text only`;
+- No markdown code fences — but DO use **bold** for emphasis and - for bullet points`;
 
 // ── Per-type additional instructions ──────────────────────────────────────────
 

@@ -257,6 +257,130 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView
 
 // ── Contract Viewer ────────────────────────────────────────────────────────────
 
+// ── Formatted body renderer — handles bullets, bold, tables, sub-headings ─────
+
+function renderInlineFormatting(text: string): React.ReactNode[] {
+  // Parse **bold** markers
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: '#1B4332' }}>{part.slice(2, -2)}</strong>
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
+function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string) => void }) {
+  const lines = text.split('\n')
+
+  // Detect if this is a table block (contains | separators)
+  const tableLines = lines.filter((l) => l.includes('|') && l.trim().length > 3)
+  const isTable = tableLines.length >= 2
+
+  // Detect if this contains bullets
+  const hasBullets = lines.some((l) => /^\s*[-•]\s/.test(l.trim()))
+
+  if (isTable) {
+    const rows = tableLines.map((l) => l.split('|').map((c) => c.trim()).filter(Boolean))
+    const nonTableLines = lines.filter((l) => !l.includes('|') || l.trim().length <= 3)
+    const isLastRowTotal = rows.length > 0 && rows[rows.length - 1][0]?.toUpperCase().includes('TOTAL')
+
+    return (
+      <div className="mb-4">
+        {/* Table */}
+        <div className="border mb-3" style={{ borderColor: '#E5E5E2' }}>
+          {rows.map((row, ri) => {
+            const isHeader = ri === 0
+            const isTotal = ri === rows.length - 1 && isLastRowTotal
+            return (
+              <div
+                key={ri}
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{
+                  backgroundColor: isHeader ? '#1B4332' : isTotal ? '#FAFAF8' : ri % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
+                  borderBottom: ri < rows.length - 1 ? '1px solid #E5E5E2' : undefined,
+                  borderTop: isTotal ? '2px solid #1B4332' : undefined,
+                }}
+              >
+                <span className={`text-sm ${isHeader || isTotal ? 'font-bold' : ''}`} style={{ color: isHeader ? '#FFFFFF' : '#374151' }}>
+                  {row[0] ?? ''}
+                </span>
+                <span className={`text-sm text-right ${isHeader || isTotal ? 'font-bold' : ''}`} style={{ color: isHeader ? '#FFFFFF' : '#1B4332', fontFamily: isHeader ? undefined : 'monospace' }}>
+                  {row[1] ?? ''}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        {/* Non-table text below */}
+        {nonTableLines.filter((l) => l.trim()).map((line, li) => (
+          <p key={li} className="text-sm leading-relaxed mb-1 italic" style={{ color: '#6B7280' }}>
+            {renderInlineFormatting(line)}
+          </p>
+        ))}
+      </div>
+    )
+  }
+
+  if (hasBullets) {
+    const bulletLines: string[] = []
+    const otherLines: string[] = []
+    for (const line of lines) {
+      if (/^\s*[-•]\s/.test(line.trim())) {
+        bulletLines.push(line.trim().replace(/^[-•]\s*/, ''))
+      } else if (line.trim()) {
+        otherLines.push(line.trim())
+      }
+    }
+    return (
+      <div className="mb-3">
+        {otherLines.length > 0 && otherLines.map((line, li) => (
+          <p key={`p-${li}`} className="text-sm leading-relaxed mb-2" style={{ color: '#374151' }}>
+            {renderInlineFormatting(line)}
+          </p>
+        ))}
+        <ul className="space-y-1.5 ml-1">
+          {bulletLines.map((item, bi) => (
+            <li key={bi} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: '#374151' }}>
+              <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5" style={{ backgroundColor: '#2D6A4F', borderRadius: '50%' }} />
+              <span>{renderInlineFormatting(item)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  // Check for sub-headings (lines ending with ":")
+  const hasSubHeadings = lines.some((l) => /^[A-Z][A-Za-z\s]+:$/.test(l.trim()))
+  if (hasSubHeadings) {
+    return (
+      <div className="mb-3 space-y-2">
+        {lines.filter((l) => l.trim()).map((line, li) => {
+          const trimmed = line.trim()
+          if (/^[A-Z][A-Za-z\s]+:$/.test(trimmed)) {
+            return <p key={li} className="text-sm font-semibold mt-3" style={{ color: '#1B4332' }}>{trimmed}</p>
+          }
+          return <p key={li} className="text-sm leading-relaxed" style={{ color: '#374151' }}>{renderInlineFormatting(trimmed)}</p>
+        })}
+      </div>
+    )
+  }
+
+  // Plain paragraph with bold support
+  return (
+    <div
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) => onUpdate(e.currentTarget.textContent ?? '')}
+      className="text-sm leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+      style={{ color: '#374151', fontWeight: 400, minHeight: '1.2rem' }}
+    >
+      {text}
+    </div>
+  )
+}
+
 // ── Signature block with draw canvas + input fields ───────────────────────────
 
 function SignatureBlock({ party1Name, party2Name }: { party1Name: string; party2Name: string }) {
@@ -451,15 +575,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                     )}
                     {/* Section body — normal weight, below heading */}
                     {parsed.body && (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={(e) => updateBlock(`${parsed.heading ?? ''}\n${e.currentTarget.textContent ?? ''}`)}
-                        className="text-sm leading-relaxed outline-none focus:bg-[#FAFAF8] px-1 -mx-1 mb-3"
-                        style={{ color: '#374151', fontWeight: 400 }}
-                      >
-                        {parsed.body}
-                      </div>
+                      <FormattedBody text={parsed.body} onUpdate={(newBody) => updateBlock(`${parsed.heading ?? ''}\n${newBody}`)} />
                     )}
                   </div>
                 )
@@ -532,19 +648,9 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                 )
               }
 
-              // Body text — normal weight
-              return (
-                <div
-                  key={i}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
-                  className="text-sm leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                  style={{ color: '#374151', fontWeight: 400, minHeight: '1.2rem' }}
-                >
-                  {block}
-                </div>
-              )
+              // Body text — check for bullets, tables, bold
+              return <FormattedBody key={i} text={block} onUpdate={updateBlock} />
+            
             })}
           </div>
 
