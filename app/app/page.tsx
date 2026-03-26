@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
+import SignatureCanvas from 'react-signature-canvas'
 import { cn } from '@/lib/utils'
 import IntakeWizard, { type IntakeData } from './IntakeWizard'
 import {
@@ -256,6 +257,78 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView
 
 // ── Contract Viewer ────────────────────────────────────────────────────────────
 
+// ── Signature block with draw canvas + input fields ───────────────────────────
+
+function SignatureBlock({ party1Name, party2Name }: { party1Name: string; party2Name: string }) {
+  const sig1Ref = useRef<SignatureCanvas>(null)
+  const sig2Ref = useRef<SignatureCanvas>(null)
+  const [name1, setName1] = useState('')
+  const [name2, setName2] = useState('')
+  const [date1, setDate1] = useState('')
+  const [date2, setDate2] = useState('')
+
+  return (
+    <div className="mt-10 pt-6 border-t-2" style={{ borderColor: '#1B4332' }}>
+      <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Acceptance &amp; Signatures</p>
+      <p className="text-sm mb-8 leading-relaxed" style={{ color: '#374151' }}>
+        By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Party 1 */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>Party 1 {party1Name ? `\u2014 ${party1Name}` : ''}</p>
+          <div className="mb-4">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature</p>
+            <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+              <SignatureCanvas
+                ref={sig1Ref}
+                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none' } }}
+                backgroundColor="transparent"
+                penColor="#1a1a1a"
+              />
+            </div>
+            <button onClick={() => sig1Ref.current?.clear()} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
+          </div>
+          <div className="mb-3">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name</p>
+            <input type="text" value={name1} onChange={(e) => setName1(e.target.value)} placeholder="Type your full name" className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date</p>
+            <input type="date" value={date1} onChange={(e) => setDate1(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+          </div>
+        </div>
+
+        {/* Party 2 */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>Party 2 {party2Name ? `\u2014 ${party2Name}` : ''}</p>
+          <div className="mb-4">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature</p>
+            <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+              <SignatureCanvas
+                ref={sig2Ref}
+                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none' } }}
+                backgroundColor="transparent"
+                penColor="#1a1a1a"
+              />
+            </div>
+            <button onClick={() => sig2Ref.current?.clear()} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
+          </div>
+          <div className="mb-3">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name</p>
+            <input type="text" value={name2} onChange={(e) => setName2(e.target.value)} placeholder="Type your full name" className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date</p>
+            <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   contract: SavedContract
   onBack: () => void
@@ -408,33 +481,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               if (parsed.type === 'signature') {
-                return (
-                  <div key={i} className="mt-10 pt-6 border-t-2" style={{ borderColor: '#1B4332' }}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: '#9CA3AF' }}>Acceptance &amp; Signatures</p>
-                    <p className="text-sm mb-8 leading-relaxed" style={{ color: '#374151' }}>
-                      By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.
-                    </p>
-                    <div className="grid grid-cols-2 gap-8">
-                      {['Party 1', 'Party 2'].map((party) => (
-                        <div key={party}>
-                          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>{party}</p>
-                          <div className="mb-4">
-                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Signature</p>
-                            <div className="border-b-2 h-16" style={{ borderColor: '#1B4332' }} />
-                          </div>
-                          <div className="mb-4">
-                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Full Name</p>
-                            <div className="border-b h-8" style={{ borderColor: '#D1D5DB' }} />
-                          </div>
-                          <div>
-                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Date</p>
-                            <div className="border-b h-8" style={{ borderColor: '#D1D5DB' }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
+                return <SignatureBlock key={i} party1Name={contract.party1 ?? ''} party2Name={contract.party2 ?? ''} />
               }
 
               if (parsed.type === 'footer') {

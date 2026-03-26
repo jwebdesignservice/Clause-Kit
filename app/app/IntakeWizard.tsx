@@ -268,7 +268,7 @@ function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; s
       </div>
 
       <SectionHeading title="Intellectual Property" />
-      <Field label="When does IP transfer to the client?">
+      <Field label="Who owns the work after payment?" hint="Choose when ownership of the work you create passes to your client">
         <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only — IP stays with freelancer']} />
       </Field>
 
@@ -819,22 +819,22 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
       </div>
 
       {/* Progress steps */}
-      <div className="flex items-center gap-2 mb-7">
+      <div className="flex items-center gap-1 mb-7">
         {STEPS.map((label, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex items-center gap-1">
             <div className="flex items-center gap-1.5">
               <div
-                className="w-5 h-5 flex items-center justify-center text-xs font-bold"
+                className="w-6 h-6 flex items-center justify-center text-xs font-bold"
                 style={i <= step
                   ? { backgroundColor: '#2D6A4F', color: '#FFFFFF' }
                   : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
                 }
               >
-                {i < step ? 'âœ"' : i + 1}
+                {i + 1}
               </div>
               <span className="text-xs font-medium hidden sm:block" style={{ color: i <= step ? '#1B4332' : '#9CA3AF' }}>{label}</span>
             </div>
-            {i < STEPS.length - 1 && <div className="flex-1 h-px w-4" style={{ backgroundColor: i < step ? '#2D6A4F' : '#E5E5E2' }} />}
+            {i < STEPS.length - 1 && <div className="w-6 h-px" style={{ backgroundColor: i < step ? '#2D6A4F' : '#E5E5E2' }} />}
           </div>
         ))}
       </div>
