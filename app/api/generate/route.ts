@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { saveContract } from "@/lib/contract-store";
-import { ContractType, IntakeFormData } from "@/types";
+import { ContractType } from "@/types";
 import { randomUUID } from "crypto";
 
-// In-memory rate limiter: max 5 requests per IP per 60 seconds
+// ── Rate limiter ───────────────────────────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
@@ -21,178 +21,473 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-const UK_LAW_BASE = `You are a specialist UK legal document drafter. You MUST adhere to the following requirements in every contract you produce:
+// ── Mandatory base prompt (applies to every contract) ─────────────────────────
 
-1. Governing law: English and Welsh law exclusively. Include a jurisdiction clause specifying the courts of England and Wales.
-2. Late Payment: Where payment terms are present, reference the Late Payment of Commercial Debts (Interest) Act 1998 and state that statutory interest at 8% above the Bank of England base rate will accrue on overdue invoices.
-3. GDPR: Include a brief data processing note acknowledging compliance with the UK GDPR and the Data Protection Act 2018 for any personal data shared between parties.
-4. Professional tone: Use clear, plain-English legal drafting suitable for UK SMEs and freelancers.
-5. Structure: Use numbered clauses and clear headings. Output the full contract as formatted plain text (no markdown fences).`;
+const MANDATORY_BASE = `You are a specialist UK legal document drafter producing bespoke, professionally structured contracts for UK freelancers and small businesses.
 
-const CONTRACT_PROMPTS: Record<ContractType, string> = {
-  freelance: `${UK_LAW_BASE}
-6. IP Ownership: The freelancer retains all intellectual property rights in deliverables until full payment is received, at which point ownership transfers to the client.
-7. IR35: Include a clause flagging IR35 awareness — the parties acknowledge this agreement is for genuinely self-employed services and that the contractor accepts sole responsibility for their tax and NI obligations.`,
+MANDATORY FORMATTING RULES — FOLLOW EXACTLY:
+1. Begin with a PARTY INFORMATION BLOCK at the top. Format:
+   PARTY 1 (the service provider / initiating party):
+   Name: [name]
+   Company: [company if given]
+   Address: [address]
+   Email: [email]
 
-  "nda-mutual": `${UK_LAW_BASE}
-6. Mutual confidentiality: Both parties agree to keep each other's confidential information strictly private. Include standard exceptions (publicly available info, prior knowledge, legal compulsion).`,
+   PARTY 2 (the client / other party):
+   Name: [name]
+   Company: [company if given]
+   Address: [address]
+   Email: [email]
 
-  "nda-one-way": `${UK_LAW_BASE}
-6. One-way confidentiality: The Receiving Party agrees to protect the Disclosing Party's confidential information. Include standard exceptions.`,
+2. Follow with numbered sections in this exact format:
+   01. SECTION TITLE
+   [body text, indented with 4 spaces or bullet points]
 
-  retainer: `${UK_LAW_BASE}
-6. Retainer terms: Include fixed monthly fee, minimum commitment period, notice period for termination, and scope of availability/hours included.
-7. IP Ownership: IP in work produced transfers to the client upon payment of that month's retainer fee.
-8. IR35: Include an IR35 awareness clause acknowledging self-employed status.`,
+3. Every contract MUST contain these sections (use exact section titles):
+   - 01. AGREEMENT TITLE
+   - [type-specific sections in the middle — see below]
+   - CONFIDENTIALITY
+   - DATA PROTECTION
+   - TERMINATION
+   - GOVERNING LAW & JURISDICTION
+   - ACCEPTANCE & SIGNATURES
 
-  subcontractor: `${UK_LAW_BASE}
-6. Sub-contracting: The contractor engages a subcontractor to assist with specific deliverables. The contractor remains responsible to the end client for all work quality.
-7. IP flows up to the contractor (and onward to the end client under the main contract).
-8. IR35: Flag IR35 awareness for the subcontractor's self-employed status.`,
+4. ACCEPTANCE & SIGNATURES section must end every contract. Format:
+   By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.
 
-  "client-service": `${UK_LAW_BASE}
-6. Service scope: Include a scope of services, acceptance criteria, and change request process.
-7. Liability: Include a reasonable liability limitation clause appropriate for UK SME transactions.`,
+   PARTY 1 — [Name/Company]
+   Signature: ___________________________
+   Full Name: ___________________________
+   Date: ___________________________
 
-  "website-tcs": `${UK_LAW_BASE}
-6. Include: acceptable use policy, intellectual property ownership of site content, disclaimer of warranties, limitation of liability, cookie/privacy policy reference, and right to amend terms with notice.`,
+   PARTY 2 — [Name/Company]
+   Signature: ___________________________
+   Full Name: ___________________________
+   Date: ___________________________
 
-  "late-payment": `${UK_LAW_BASE}
-6. This is a formal debt recovery letter. Cite the specific invoice(s), the amount(s) outstanding, and the original due date(s).
-7. State that statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998 is now accruing at 8% above the Bank of England base rate.
-8. Give a final payment deadline of 7 days and state that legal proceedings may follow without further notice.`,
+5. End with a footer line:
+   ---
+   This document was generated by ClauseKit. It is not legal advice. For high-value or complex matters, seek advice from a qualified UK solicitor.
 
-  "employment-offer": `${UK_LAW_BASE}
-6. This is an employment offer letter (not a full employment contract). Include: role title, start date, salary, working hours, holiday entitlement (minimum 28 days including bank holidays per Working Time Regulations 1998), probationary period, and a note that a full written statement of particulars will follow within 2 months per the Employment Rights Act 1996.`,
+MANDATORY LEGAL CLAUSES — INCLUDE IN EVERY CONTRACT:
+- Governing law: "This Agreement shall be governed by the laws of England and Wales. Both parties submit to the exclusive jurisdiction of the courts of England and Wales."
+- Data protection: Reference UK GDPR and Data Protection Act 2018. State that personal data shared is used solely for the purpose of this Agreement and will not be shared with third parties without consent.
+- Confidentiality: Both parties keep confidential information private during and after the Agreement. Standard exceptions: (a) publicly available information; (b) independently developed information; (c) legally compelled disclosure.
+- Termination consequences: All outstanding invoices become immediately due on termination.
 
-  custom: `${UK_LAW_BASE}
-6. Adapt the contract to the custom description provided by the user. Ensure all standard UK legal requirements above are met.`,
+PROFESSIONAL STANDARDS:
+- Use specific values from the data provided (names, amounts, dates) — never use placeholder brackets
+- Plain English throughout — formal but not unnecessarily complex
+- Be specific: "7 days written notice" not "reasonable notice"
+- Fees must be presented in a structured breakdown showing item and amount
+- If payment is split, show each instalment clearly (amount, when due, conditions)
+- Target length: 800–1,400 words (more for complex types like freelance/employment)
+- No markdown code fences, no asterisk formatting — clean plain text only`;
+
+// ── Per-type additional instructions ──────────────────────────────────────────
+
+const TYPE_INSTRUCTIONS: Record<ContractType, string> = {
+  freelance: `
+CONTRACT TYPE: Freelance / Project Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — who is agreeing, in what capacity, governing document
+02. PROJECT OVERVIEW — project name, plain English description, primary goals
+03. SCOPE OF WORK — bulleted list of exactly what is included; state that anything outside this scope requires written agreement
+04. DELIVERABLES — what the client receives on completion
+05. TIMELINES — start date, estimated completion, milestones, note that delays caused by client may affect timeline
+06. FEES & PAYMENT — total fee, payment structure, invoice terms, deposit if applicable
+    MANDATORY: "Invoices unpaid after [X] days of the due date will accrue statutory interest at 8% above the Bank of England base rate per annum under the Late Payment of Commercial Debts (Interest) Act 1998, plus fixed compensation of £40–£100 per invoice."
+07. REVISION POLICY — rounds included, what counts as a revision, rate for additional revisions
+08. INTELLECTUAL PROPERTY — IP remains with Contractor until full payment received, then transfers to Client. Contractor retains portfolio rights unless Client objects in writing. Third-party assets remain under their respective licences.
+09. IR35 & TAX STATUS — parties acknowledge this is a genuinely self-employed engagement. Contractor is solely responsible for their own tax and National Insurance. This agreement does not create an employment relationship.
+10. CONFIDENTIALITY — (mandatory base applies)
+11. DATA PROTECTION — (mandatory base applies)
+12. TERMINATION — notice period, deposit non-refundable on client termination, work to date invoiced on termination
+13. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  "nda-mutual": `
+CONTRACT TYPE: Mutual Non-Disclosure Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — mutual NDA, both parties disclosing and receiving
+02. PURPOSE — why confidential information is being shared
+03. DEFINITION OF CONFIDENTIAL INFORMATION — what is covered, what is excluded
+04. MUTUAL OBLIGATIONS — each party's duty to protect the other's information
+05. PERMITTED USE — information may only be used for the stated purpose
+06. STANDARD EXCEPTIONS — (a) publicly available; (b) independently developed; (c) legally compelled; (d) prior knowledge evidenced in writing
+07. DURATION — how long the NDA lasts
+08. REMEDIES FOR BREACH — injunctive relief available without proof of financial loss; general damages also applicable
+09. DATA PROTECTION — (mandatory base applies)
+10. TERMINATION — how the agreement ends; obligations survive termination
+11. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  "nda-one-way": `
+CONTRACT TYPE: One-Way Non-Disclosure Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — one-way NDA, identify Disclosing Party and Receiving Party
+02. PURPOSE — why the information is being disclosed
+03. DEFINITION OF CONFIDENTIAL INFORMATION — what is covered
+04. RECEIVING PARTY OBLIGATIONS — duty to protect, restrict access, not disclose to third parties
+05. PERMITTED USE — receiving party may only use information for the stated purpose
+06. STANDARD EXCEPTIONS — (a) publicly available; (b) independently developed; (c) legally compelled; (d) prior knowledge evidenced in writing
+07. DURATION — how long the NDA lasts
+08. REMEDIES FOR BREACH — injunctive relief; general damages
+09. DATA PROTECTION — (mandatory base applies)
+10. TERMINATION — obligations survive termination
+11. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  retainer: `
+CONTRACT TYPE: Retainer Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — ongoing services retainer between parties
+02. SERVICES — detailed description of what is provided each month, hours included
+03. FEES & PAYMENT — monthly fee, payment due date, invoice terms
+    MANDATORY: Late Payment Act reference — 8% above BoE base rate
+04. HOURS & OVERFLOW — what happens to unused hours; what happens if hours are exceeded and at what rate
+05. MINIMUM TERM & TERMINATION — minimum commitment period, notice period after minimum term, auto-renewal if applicable
+06. INTELLECTUAL PROPERTY — IP in work produced transfers to client upon payment of that month's retainer fee
+07. IR35 & TAX STATUS — self-employed engagement, contractor responsible for own tax and NI
+08. CONFIDENTIALITY — (mandatory base applies)
+09. DATA PROTECTION — (mandatory base applies)
+10. TERMINATION — notice period, work in progress on termination, outstanding fees
+11. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  subcontractor: `
+CONTRACT TYPE: Subcontractor Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — main contractor engages subcontractor; main contractor remains responsible to end client
+02. SCOPE OF WORK — what specific work is subcontracted; what is excluded
+03. DELIVERABLES — what the subcontractor provides and in what format
+04. TIMELINES — deadline for subcontracted work
+05. FEES & PAYMENT — fee, payment terms after delivery or client acceptance
+    MANDATORY: Late Payment Act reference
+06. QUALITY & WARRANTIES — subcontractor warrants work meets professional standard; remedy for defects
+07. INTELLECTUAL PROPERTY — all IP in work created flows to main contractor (and onward to end client under main contract)
+08. IR35 & TAX STATUS — subcontractor is self-employed, responsible for own tax and NI
+09. CONFIDENTIALITY — includes end client confidentiality; subcontractor may not disclose project details
+10. DATA PROTECTION — (mandatory base applies)
+11. TERMINATION — notice, consequences, work in progress
+12. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  "client-service": `
+CONTRACT TYPE: Client Service Agreement
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. AGREEMENT TITLE — service provider and client
+02. SERVICES — description of services, whether project or ongoing
+03. FEES & PAYMENT — fee structure, amount, payment terms
+    MANDATORY: Late Payment Act reference
+04. TIMELINES — if project-based: start, end, milestones; if ongoing: commencement date
+05. INTELLECTUAL PROPERTY — IP in deliverables transfers to client on full payment
+06. LIMITATION OF LIABILITY — cap on liability (state the amount); exclusion of consequential losses including lost profits, lost revenue, loss of data
+07. CONFIDENTIALITY — (mandatory base applies)
+08. DATA PROTECTION — (mandatory base applies)
+09. DISPUTE RESOLUTION — parties will attempt to resolve disputes by negotiation first, then mediation if needed
+10. TERMINATION — notice period, work in progress, fees
+11. GOVERNING LAW & JURISDICTION — (mandatory base applies)
+ACCEPTANCE & SIGNATURES`,
+
+  "website-tcs": `
+CONTRACT TYPE: Website Terms and Conditions
+
+NOTE: This is a terms document between a website owner and its users — not a two-party agreement. Structure accordingly.
+
+REQUIRED SECTIONS IN THIS ORDER:
+01. INTRODUCTION — website name, URL, who operates it, what the T&Cs govern
+02. ACCEPTANCE — by using the website, users accept these terms
+03. USE OF THE WEBSITE — acceptable use policy; prohibited activities; right to restrict access
+04. INTELLECTUAL PROPERTY — website content is owned by the operator; user-generated content licence if applicable
+05. DISCLAIMER OF WARRANTIES — website provided "as is"; no guarantee of availability; operator not liable for inaccuracies
+06. LIMITATION OF LIABILITY — operator's liability limited; consequential losses excluded; comply with Consumer Rights Act 2015 where applicable
+07. PRIVACY & COOKIES — reference to Privacy Policy and Cookie Policy (link/section); types of cookies used; UK GDPR compliance
+08. THIRD-PARTY LINKS — operator not responsible for third-party content
+09. CHANGES TO TERMS — operator may update terms with notice
+10. DATA PROTECTION — UK GDPR and Data Protection Act 2018 compliance; data controller information
+11. GOVERNING LAW & JURISDICTION — English and Welsh law
+NOTE: No signature block needed — replace with "Last updated: [date]"`,
+
+  "late-payment": `
+CONTRACT TYPE: Formal Late Payment Demand Letter
+
+NOTE: This is a demand letter, not a bilateral agreement. Structure as a formal letter.
+
+FORMAT:
+- Begin with sender details (top right) and date
+- Then recipient details
+- Subject: FORMAL NOTICE OF OVERDUE PAYMENT — Invoice [number]
+- Opening: formal but firm tone
+
+REQUIRED CONTENT:
+1. Reference the specific invoice(s): number, date issued, amount, original due date
+2. State the number of days overdue
+3. State that statutory interest has been accruing under the Late Payment of Commercial Debts (Interest) Act 1998 at 8% above the Bank of England base rate from the original due date
+4. State the fixed compensation amount due under the Act: £40 (invoices under £1,000), £70 (£1,000–£10,000), £100 (over £10,000)
+5. State the total amount now owed: original invoice + statutory interest + fixed compensation
+6. Give a final payment deadline (the date provided)
+7. State that if payment is not received by the deadline, the sender will [take legal action — as specified]
+8. Request confirmation of payment or contact to discuss
+
+CLOSING: Formal sign-off. No signature block — just sender name and contact details.
+No footer disclaimer needed for this type.`,
+
+  "employment-offer": `
+CONTRACT TYPE: Employment Offer Letter
+
+NOTE: This is a formal offer letter, not a full employment contract. It satisfies the requirement for a written statement of employment particulars under the Employment Rights Act 1996 s.1.
+
+FORMAT: Letter format, not section-numbered agreement.
+
+REQUIRED CONTENT IN THIS ORDER:
+1. Date and recipient address
+2. "Dear [Name],"
+3. Opening paragraph: offer of employment, role title, employing company
+4. Role details: job title, department, reporting line, place of work
+5. Start date and employment type (full-time/part-time/fixed-term)
+6. Salary: annual amount, pay frequency. NOTE: confirm above National Minimum Wage (£11.44/hr from April 2024)
+7. Working hours: hours per week, core hours
+8. Holiday entitlement: days per year. NOTE: must meet statutory minimum of 28 days including bank holidays (Working Time Regulations 1998). Holiday year dates.
+9. Probation period and notice during probation
+10. Notice period after probation
+11. Benefits (if any)
+12. Restrictive covenants (if any): non-compete duration and scope, non-solicitation
+13. Conditions: subject to right-to-work check (mandatory UK requirement), references, DBS check if applicable
+14. Acceptance: "Please sign and return a copy of this letter to confirm your acceptance"
+15. Note: "A full written statement of employment particulars will be provided within 2 months of your start date as required by the Employment Rights Act 1996."
+16. Closing: "We look forward to welcoming you to the team."
+
+SIGNATURE LINES: One for employer (signed), one for employee (to sign and return)
+No numbered sections — letter format only.
+No footer disclaimer needed.`,
+
+  custom: `
+CONTRACT TYPE: Custom Agreement
+
+Generate a complete, professional UK-law contract based on the description provided.
+Follow all mandatory formatting and legal clause requirements.
+Structure with numbered sections appropriate to the type of agreement described.`,
 };
 
-function buildUserPrompt(data: IntakeFormData): string {
-  const lines: string[] = [`Contract Type: ${data.contractType}`];
+// ── Build user prompt from intake data ────────────────────────────────────────
 
-  if (data.customDescription) {
-    lines.push(`Custom Description: ${data.customDescription}`);
+function buildUserPrompt(contractType: ContractType, fields: Record<string, string | string[]>): string {
+  const lines: string[] = []
+
+  // Party details
+  if (fields.yourName) lines.push(`PARTY 1 NAME: ${fields.yourName}`)
+  if (fields.yourEmail) lines.push(`PARTY 1 EMAIL: ${fields.yourEmail}`)
+  if (fields.yourAddress) lines.push(`PARTY 1 ADDRESS: ${fields.yourAddress}`)
+  if (fields.yourCompanyNumber) lines.push(`PARTY 1 COMPANY NUMBER: ${fields.yourCompanyNumber}`)
+  if (fields.yourVatNumber) lines.push(`PARTY 1 VAT NUMBER: ${fields.yourVatNumber}`)
+
+  if (fields.theirName) lines.push(`PARTY 2 NAME: ${fields.theirName}`)
+  if (fields.theirEmail) lines.push(`PARTY 2 EMAIL: ${fields.theirEmail}`)
+  if (fields.theirAddress) lines.push(`PARTY 2 ADDRESS: ${fields.theirAddress}`)
+  if (fields.theirContactName) lines.push(`PARTY 2 CONTACT: ${fields.theirContactName}`)
+
+  if (fields.contractStartDate) lines.push(`CONTRACT START DATE: ${fields.contractStartDate}`)
+  if (fields.governingLaw) lines.push(`GOVERNING LAW: ${fields.governingLaw}`)
+
+  // Contract-specific fields
+  const contractFields: Record<string, string> = {
+    projectTitle: 'PROJECT TITLE',
+    deliverables: 'DELIVERABLES',
+    projectStartDate: 'PROJECT START DATE',
+    projectEndDate: 'ESTIMATED COMPLETION DATE',
+    feeStructure: 'FEE STRUCTURE',
+    feeAmount: 'FEE AMOUNT (£)',
+    paymentTerms: 'PAYMENT TERMS',
+    paymentSchedule: 'PAYMENT SCHEDULE',
+    depositRequired: 'DEPOSIT REQUIRED',
+    depositPercentage: 'DEPOSIT PERCENTAGE',
+    revisionsIncluded: 'REVISIONS INCLUDED',
+    additionalRevisionRate: 'ADDITIONAL REVISION RATE',
+    ipTransfer: 'IP TRANSFERS TO CLIENT',
+    portfolioRight: 'CONTRACTOR PORTFOLIO RIGHT',
+    noticePeriod: 'NOTICE PERIOD TO TERMINATE',
+    terminationWIP: 'WORK IN PROGRESS ON TERMINATION',
+    confidentialityRequired: 'CONFIDENTIALITY CLAUSE NEEDED',
+    confidentialityDuration: 'CONFIDENTIALITY DURATION',
+    ndaPurpose: 'NDA PURPOSE',
+    confidentialInfo: 'CONFIDENTIAL INFORMATION DESCRIPTION',
+    includesTechnical: 'INCLUDES TECHNICAL / TRADE SECRETS',
+    includesFinancial: 'INCLUDES FINANCIAL INFORMATION',
+    includesPersonalData: 'INCLUDES PERSONAL DATA',
+    ndaDuration: 'NDA DURATION',
+    ndaScope: 'GEOGRAPHIC SCOPE',
+    injunctiveRelief: 'INCLUDE INJUNCTIVE RELIEF CLAUSE',
+    disclosingParty: 'DISCLOSING PARTY',
+    permittedUse: 'PERMITTED USE OF INFORMATION',
+    retainerServices: 'SERVICES PROVIDED',
+    retainerHours: 'HOURS INCLUDED PER MONTH',
+    unusedHours: 'UNUSED HOURS POLICY',
+    overflowRate: 'OVERFLOW RATE',
+    retainerFee: 'MONTHLY RETAINER FEE (£)',
+    retainerPaymentDate: 'PAYMENT DUE DATE',
+    minimumTerm: 'MINIMUM COMMITMENT PERIOD',
+    retainerNotice: 'NOTICE PERIOD',
+    retainerAutoRenew: 'AUTO-RENEWAL',
+    subcontractWork: 'SUBCONTRACTED WORK',
+    subcontractDeadline: 'DEADLINE',
+    qualityWarranty: 'QUALITY WARRANTY',
+    defectRemedy: 'REMEDY FOR DEFECTS',
+    piInsurance: 'PROFESSIONAL INDEMNITY INSURANCE',
+    subcontractNDA: 'INCLUDE CONFIDENTIALITY',
+    subcontractPortfolio: 'PORTFOLIO RIGHT',
+    serviceType: 'TYPE OF SERVICE',
+    serviceDescription: 'SERVICE DESCRIPTION',
+    serviceNature: 'PROJECT OR ONGOING',
+    liabilityCap: 'LIABILITY CAP',
+    liabilityCapAmount: 'LIABILITY CAP AMOUNT',
+    excludeConsequential: 'EXCLUDE CONSEQUENTIAL LOSS',
+    websiteUrl: 'WEBSITE URL',
+    websiteType: 'WEBSITE TYPE',
+    sellsProducts: 'SELLS PRODUCTS/SERVICES TO CONSUMERS',
+    userContent: 'ALLOWS USER-GENERATED CONTENT',
+    requiresAccount: 'REQUIRES USER ACCOUNT',
+    providesAdvice: 'PROVIDES PROFESSIONAL ADVICE',
+    invoiceNumber: 'INVOICE NUMBER',
+    invoiceDate: 'INVOICE DATE',
+    invoiceAmount: 'INVOICE AMOUNT (£)',
+    invoiceDueDate: 'ORIGINAL DUE DATE',
+    invoiceDescription: 'INVOICE DESCRIPTION',
+    previouslyChased: 'PREVIOUSLY CHASED',
+    lastChaseDate: 'DATE OF LAST CHASE',
+    invoiceAcknowledged: 'INVOICE ACKNOWLEDGED BY DEBTOR',
+    finalDeadline: 'FINAL PAYMENT DEADLINE',
+    legalThreat: 'ACTION IF UNPAID',
+    jobTitle: 'JOB TITLE',
+    department: 'DEPARTMENT',
+    reportingTo: 'REPORTING TO',
+    placeOfWork: 'PLACE OF WORK',
+    workingArrangement: 'WORKING ARRANGEMENT',
+    employmentType: 'EMPLOYMENT TYPE',
+    startDate: 'START DATE',
+    annualSalary: 'ANNUAL SALARY (£)',
+    payFrequency: 'PAY FREQUENCY',
+    hoursPerWeek: 'HOURS PER WEEK',
+    coreHours: 'CORE HOURS',
+    holidayDays: 'HOLIDAY ENTITLEMENT (DAYS)',
+    holidayYear: 'HOLIDAY YEAR',
+    probationPeriod: 'PROBATION PERIOD',
+    noticePeriodEmployment: 'NOTICE PERIOD',
+    bonusScheme: 'BONUS/COMMISSION SCHEME',
+    bonusDescription: 'BONUS DESCRIPTION',
+    nonCompete: 'NON-COMPETE CLAUSE',
+    nonCompeteDuration: 'NON-COMPETE DURATION',
+    nonCompeteScope: 'NON-COMPETE GEOGRAPHIC SCOPE',
+    nonSolicitation: 'NON-SOLICITATION CLAUSE',
   }
 
-  if (data.fields && Object.keys(data.fields).length > 0) {
-    lines.push("\nParty and Contract Details:");
-    for (const [key, value] of Object.entries(data.fields)) {
-      if (value) {
-        const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
-        lines.push(`- ${label}: ${value}`);
+  for (const [key, label] of Object.entries(contractFields)) {
+    const val = fields[key]
+    if (val && val !== '' && val !== 'no') {
+      if (Array.isArray(val)) {
+        if (val.length > 0 && val[0] !== '') lines.push(`${label}: ${val.join(', ')}`)
+      } else {
+        lines.push(`${label}: ${val}`)
       }
     }
   }
 
-  lines.push("\nGenerate the complete contract now.");
-  return lines.join("\n");
+  lines.push('\nGenerate the complete contract now, following all formatting and legal requirements exactly.')
+  return lines.join('\n')
 }
 
-function deriveTitle(contractType: ContractType, fields: Record<string, string>): string {
+// ── Derive title from intake data ─────────────────────────────────────────────
+
+function deriveTitle(contractType: ContractType, fields: Record<string, string | string[]>): string {
   const typeLabels: Record<ContractType, string> = {
-    freelance: "Freelance Project Agreement",
-    "nda-mutual": "Mutual Non-Disclosure Agreement",
-    "nda-one-way": "Non-Disclosure Agreement",
-    retainer: "Retainer Agreement",
-    subcontractor: "Subcontractor Agreement",
-    "client-service": "Client Service Agreement",
-    "website-tcs": "Website Terms and Conditions",
-    "late-payment": "Late Payment Notice",
-    "employment-offer": "Employment Offer Letter",
-    custom: "Custom Agreement",
-  };
+    freelance: 'Freelance Project Agreement',
+    'nda-mutual': 'Mutual Non-Disclosure Agreement',
+    'nda-one-way': 'Non-Disclosure Agreement',
+    retainer: 'Retainer Agreement',
+    subcontractor: 'Subcontractor Agreement',
+    'client-service': 'Client Service Agreement',
+    'website-tcs': 'Website Terms and Conditions',
+    'late-payment': 'Late Payment Notice',
+    'employment-offer': 'Employment Offer Letter',
+    custom: 'Custom Agreement',
+  }
 
-  const base = typeLabels[contractType] ?? "Agreement";
-  const clientName = fields?.clientName || fields?.client || fields?.recipientName;
-  return clientName ? `${base} — ${clientName}` : base;
+  const base = typeLabels[contractType] ?? 'Agreement'
+  const theirName = fields?.theirName as string
+  const projectTitle = fields?.projectTitle as string
+
+  if (projectTitle && theirName) return `${base} — ${projectTitle}`
+  if (theirName) return `${base} — ${theirName}`
+  return base
 }
+
+// ── POST handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
   const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
 
   if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      { error: "Too many requests. Please wait a minute and try again." },
-      { status: 429 }
-    );
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 })
   }
 
-  let body: IntakeFormData;
+  let body: { contractType: ContractType; fields?: Record<string, string | string[]>; customDescription?: string }
   try {
-    body = await req.json();
+    body = await req.json()
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
-  const { contractType, customDescription, fields } = body;
+  const { contractType, fields = {} } = body
 
   if (!contractType) {
-    return NextResponse.json({ error: "contractType is required." }, { status: 400 });
+    return NextResponse.json({ error: 'contractType is required.' }, { status: 400 })
   }
 
-  const systemPrompt = CONTRACT_PROMPTS[contractType] ?? CONTRACT_PROMPTS.custom;
-  const userPrompt = buildUserPrompt({ contractType, customDescription, fields: fields ?? {} });
+  const systemPrompt = MANDATORY_BASE + '\n\n' + (TYPE_INSTRUCTIONS[contractType] ?? TYPE_INSTRUCTIONS.custom)
+  const userPrompt = buildUserPrompt(contractType, fields)
 
   if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      { error: "OpenAI API key is not configured." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 })
   }
 
-  let contractContent: string;
+  let contractContent: string
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
       ],
-      temperature: 0.3,
+      temperature: 0.2,
       max_tokens: 4000,
-    });
+    })
 
-    contractContent = completion.choices[0]?.message?.content?.trim() ?? "";
-    if (!contractContent) {
-      throw new Error("Empty response from OpenAI.");
-    }
+    contractContent = completion.choices[0]?.message?.content?.trim() ?? ''
+    if (!contractContent) throw new Error('Empty response from OpenAI.')
   } catch (err: unknown) {
-    console.error("OpenAI generation error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: `Contract generation failed: ${message}` },
-      { status: 502 }
-    );
+    console.error('OpenAI generation error:', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: `Contract generation failed: ${message}` }, { status: 502 })
   }
 
-  const contractId = randomUUID();
-  const title = deriveTitle(contractType, fields ?? {});
-  const createdAt = new Date().toISOString();
+  const contractId = randomUUID()
+  const title = deriveTitle(contractType, fields)
+  const createdAt = new Date().toISOString()
 
   try {
-    saveContract({
-      id: contractId,
-      contractType,
-      title,
-      content: contractContent,
-      createdAt,
-    });
+    saveContract({ id: contractId, contractType, title, content: contractContent, createdAt })
   } catch (err) {
-    console.error("Failed to save contract to store:", err);
-    // Still return the content — don't fail the user
+    console.error('Failed to save contract to store:', err)
   }
 
-  return NextResponse.json({
-    contractId,
-    title,
-    contractType,
-    content: contractContent,
-    createdAt,
-  });
+  return NextResponse.json({ contractId, id: contractId, title, contractType, content: contractContent, createdAt })
 }
