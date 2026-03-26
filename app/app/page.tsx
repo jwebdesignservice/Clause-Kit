@@ -29,7 +29,7 @@ import {
   Download,
   ExternalLink,
   Search,
-  // LogOut removed — account section uses text buttons now
+  Pen,
   Menu,
   X,
   ChevronDown,
@@ -513,38 +513,50 @@ function EditableParties({ contract, intake, onUpdate }: {
   }
 
   const Field = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-    <div className="mb-2">
-      <p className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>{label}</p>
+    <div>
+      <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>{label}</p>
       {editing ? (
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} style={inputSty} />
       ) : (
-        <p className="text-sm" style={{ color: '#1B4332' }}>{value || '—'}</p>
+        <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #E5E5E2', paddingBottom: 4 }}>{value || '\u2014'}</p>
       )}
     </div>
   )
 
   return (
     <>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#2D6A4F' }}>Provider</p>
-        {!editing && (
-          <button onClick={() => setEditing(true)} className="text-xs font-medium hover:opacity-70" style={{ color: '#2D6A4F' }}>Edit</button>
-        )}
+      {/* Provider card */}
+      <div className="border mb-4" style={{ borderColor: '#E5E5E2' }}>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Provider</p>
+          {!editing && (
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs font-medium hover:opacity-70" style={{ color: '#2D6A4F' }}>
+              <Pen className="w-3 h-3" /> Edit
+            </button>
+          )}
+        </div>
+        <div className="px-4 py-3 space-y-3">
+          <Field label="Name" value={p1Name} onChange={setP1Name} />
+          <Field label="Email" value={p1Email} onChange={setP1Email} />
+          <Field label="Address" value={p1Address} onChange={setP1Address} />
+        </div>
       </div>
-      <Field label="Name" value={p1Name} onChange={setP1Name} />
-      <Field label="Email" value={p1Email} onChange={setP1Email} />
-      <Field label="Address" value={p1Address} onChange={setP1Address} />
 
-      <div className="border-t pt-4 mt-4" style={{ borderColor: '#E5E5E2' }}>
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Client</p>
-        <Field label="Name" value={p2Name} onChange={setP2Name} />
-        <Field label="Email" value={p2Email} onChange={setP2Email} />
-        <Field label="Address" value={p2Address} onChange={setP2Address} />
-        <Field label="Contact person" value={p2Contact} onChange={setP2Contact} />
+      {/* Client card */}
+      <div className="border mb-4" style={{ borderColor: '#E5E5E2' }}>
+        <div className="px-4 py-2.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Client</p>
+        </div>
+        <div className="px-4 py-3 space-y-3">
+          <Field label="Name" value={p2Name} onChange={setP2Name} />
+          <Field label="Email" value={p2Email} onChange={setP2Email} />
+          <Field label="Address" value={p2Address} onChange={setP2Address} />
+          <Field label="Contact" value={p2Contact} onChange={setP2Contact} />
+        </div>
       </div>
 
       {editing && (
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2">
           <button onClick={handleSave} className="flex-1 py-2 text-xs font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
             Save changes
           </button>
