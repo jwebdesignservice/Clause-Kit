@@ -306,15 +306,22 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
     .filter(([k]) => intake[k] && String(intake[k]).trim())
     .map(([k, label]) => ({ label, value: String(intake[k]) }))
 
-  // Classify line types
-  const classifyBlock = (text: string): 'section-heading' | 'party-block' | 'signature' | 'footer' | 'body' => {
+  // Parse block into heading + body (AI often puts "01. HEADING - body text" on same line)
+  const parseBlock = (text: string): { type: 'section' | 'party' | 'signature' | 'footer' | 'body'; heading?: string; body: string } => {
     const t = text.trim()
-    if (/^\d{2}\.\s+[A-Z]/.test(t)) return 'section-heading'
-    if (t.startsWith('PARTY 1') || t.startsWith('PARTY 2')) return 'party-block'
-    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || t.startsWith('PARTY 1 —') || t.startsWith('PARTY 2 —')) return 'signature'
-    if (t.startsWith('---') || t.startsWith('This document was generated')) return 'footer'
-    if (t === t.toUpperCase() && t.length > 5 && t.length < 60 && !t.startsWith('-')) return 'section-heading'
-    return 'body'
+    if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
+    if (t.startsWith('PARTY 1') || t.startsWith('PARTY 2')) return { type: 'party', body: t }
+    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || t.includes('___')) return { type: 'signature', body: t }
+
+    // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
+    const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
+    if (sectionMatch) return { type: 'section', heading: sectionMatch[1].trim(), body: sectionMatch[2].trim() }
+
+    // Pure heading line (all caps, short)
+    if (/^\d{2}\.\s+[A-Z]/.test(t) && t.length < 80) return { type: 'section', heading: t, body: '' }
+    if (t === t.toUpperCase() && t.length > 5 && t.length < 60 && !t.startsWith('-')) return { type: 'section', heading: t, body: '' }
+
+    return { type: 'body', body: t }
   }
 
   return (
@@ -346,39 +353,53 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
           {/* Document body — parsed sections */}
           <div>
             {blocks.map((block, i) => {
-              const type = classifyBlock(block)
+              const parsed = parseBlock(block)
+              const updateBlock = (text: string) => {
+                const nb = [...blocks]; nb[i] = text; setEditableContent(nb.join('\n\n'))
+              }
 
-              if (type === 'section-heading') {
+              if (parsed.type === 'section') {
                 return (
-                  <div key={i} className="mt-8 mb-3">
-                    <div className="border-b pb-2 mb-3" style={{ borderColor: '#E5E5E2' }}>
+                  <div key={i} className="mt-8">
+                    {/* Section heading — bold, with divider */}
+                    {parsed.heading && (
+                      <div className="border-b pb-2 mb-3" style={{ borderColor: '#D8F3DC' }}>
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => updateBlock(`${e.currentTarget.textContent ?? ''}\n${parsed.body}`)}
+                          className="text-sm font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                          style={{ color: '#1B4332' }}
+                        >
+                          {parsed.heading}
+                        </div>
+                      </div>
+                    )}
+                    {/* Section body — normal weight, below heading */}
+                    {parsed.body && (
                       <div
                         contentEditable
                         suppressContentEditableWarning
-                        onBlur={(e) => {
-                          const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
-                        }}
-                        className="text-sm font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                        style={{ color: '#1B4332' }}
+                        onBlur={(e) => updateBlock(`${parsed.heading ?? ''}\n${e.currentTarget.textContent ?? ''}`)}
+                        className="text-sm leading-relaxed outline-none focus:bg-[#FAFAF8] px-1 -mx-1 mb-3"
+                        style={{ color: '#374151', fontWeight: 400 }}
                       >
-                        {block}
+                        {parsed.body}
                       </div>
-                    </div>
+                    )}
                   </div>
                 )
               }
 
-              if (type === 'party-block') {
+              if (parsed.type === 'party') {
                 return (
                   <div key={i} className="mb-4 p-4 border-l-4" style={{ borderLeftColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
                     <div
                       contentEditable
                       suppressContentEditableWarning
-                      onBlur={(e) => {
-                        const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
-                      }}
+                      onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
                       className="text-sm leading-relaxed outline-none"
-                      style={{ color: '#374151' }}
+                      style={{ color: '#374151', fontWeight: 400 }}
                     >
                       {block}
                     </div>
@@ -386,43 +407,53 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                 )
               }
 
-              if (type === 'signature') {
+              if (parsed.type === 'signature') {
                 return (
-                  <div key={i} className="mt-8 pt-6 border-t" style={{ borderColor: '#1B4332' }}>
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => {
-                        const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
-                      }}
-                      className="text-sm font-semibold leading-loose outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                      style={{ color: '#1B4332' }}
-                    >
-                      {block}
+                  <div key={i} className="mt-10 pt-6 border-t-2" style={{ borderColor: '#1B4332' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: '#9CA3AF' }}>Acceptance &amp; Signatures</p>
+                    <p className="text-sm mb-8 leading-relaxed" style={{ color: '#374151' }}>
+                      By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.
+                    </p>
+                    <div className="grid grid-cols-2 gap-8">
+                      {['Party 1', 'Party 2'].map((party) => (
+                        <div key={party}>
+                          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#1B4332' }}>{party}</p>
+                          <div className="mb-4">
+                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Signature</p>
+                            <div className="border-b-2 h-16" style={{ borderColor: '#1B4332' }} />
+                          </div>
+                          <div className="mb-4">
+                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Full Name</p>
+                            <div className="border-b h-8" style={{ borderColor: '#D1D5DB' }} />
+                          </div>
+                          <div>
+                            <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Date</p>
+                            <div className="border-b h-8" style={{ borderColor: '#D1D5DB' }} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )
               }
 
-              if (type === 'footer') {
+              if (parsed.type === 'footer') {
                 return (
-                  <div key={i} className="mt-8 pt-4 border-t text-center" style={{ borderColor: '#E5E5E2' }}>
+                  <div key={i} className="mt-10 pt-4 border-t text-center" style={{ borderColor: '#E5E5E2' }}>
                     <p className="text-xs" style={{ color: '#9CA3AF' }}>{block}</p>
                   </div>
                 )
               }
 
-              // Body text
+              // Body text — normal weight
               return (
                 <div
                   key={i}
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => {
-                    const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
-                  }}
+                  onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
                   className="text-sm leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                  style={{ color: '#374151', minHeight: '1.2rem' }}
+                  style={{ color: '#374151', fontWeight: 400, minHeight: '1.2rem' }}
                 >
                   {block}
                 </div>
