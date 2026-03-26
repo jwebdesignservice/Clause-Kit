@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useState } from 'react'
@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Plus, X as XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Types â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 export interface IntakeData {
   // Your details
@@ -23,7 +23,7 @@ export interface IntakeData {
   // Contract meta
   contractStartDate: string
   governingLaw: string
-  // Contract-specific â€” all optional, populated based on type
+  // Contract-specific — all optional, populated based on type
   [key: string]: string | string[]
 }
 
@@ -34,7 +34,7 @@ interface WizardProps {
   onBack: () => void
 }
 
-// â”€â”€ Shared input styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Shared input styles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const inputClass = "w-full border px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
 const inputStyle = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
@@ -43,7 +43,7 @@ const labelClass = "block text-sm font-semibold mb-1.5"
 const labelStyle = { color: '#1B4332' }
 const optionalTag = <span className="text-xs font-normal ml-1" style={{ color: '#9CA3AF' }}>(optional)</span>
 
-// â”€â”€ Field components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Field components â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function Field({ label, optional, hint, error, children }: {
   label: string; optional?: boolean; hint?: string; error?: string; children: React.ReactNode
@@ -159,6 +159,25 @@ function MultiSelect({ name, value, onChange, options }: {
   )
 }
 
+function CurrencyInput({ name, value, onChange, suffix, hasError }: {
+  name: string; value: string; onChange: (k: string, v: string) => void; suffix?: string; hasError?: boolean
+}) {
+  return (
+    <div className="flex items-stretch border" style={hasError ? { borderColor: '#EF4444' } : { borderColor: '#E5E5E2' }}>
+      <span className="flex items-center px-3 text-sm font-medium border-r flex-shrink-0" style={{ backgroundColor: '#F3F4F6', borderColor: hasError ? '#EF4444' : '#E5E5E2', color: '#6B7280' }}>£</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(name, e.target.value)}
+        placeholder="e.g. 450"
+        className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+        style={{ backgroundColor: hasError ? '#FEF2F2' : '#FAFAF8', color: '#1A1A1A' }}
+      />
+      {suffix && <span className="flex items-center px-3 text-sm font-medium border-l flex-shrink-0" style={{ backgroundColor: '#F3F4F6', borderColor: hasError ? '#EF4444' : '#E5E5E2', color: '#6B7280' }}>{suffix}</span>}
+    </div>
+  )
+}
+
 function RepeatableField({ name, values, onChange, placeholder }: {
   name: string; values: string[]; onChange: (k: string, v: string[]) => void; placeholder?: string
 }) {
@@ -195,7 +214,7 @@ function RepeatableField({ name, values, onChange, placeholder }: {
   )
 }
 
-// â”€â”€ Contract-specific question sets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Contract-specific question sets â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void; errors: Record<string, string> }) {
   return (
@@ -221,8 +240,8 @@ function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; s
         <Select name="feeStructure" value={data.feeStructure as string ?? ''} onChange={set} options={['Fixed fee', 'Hourly rate', 'Day rate', 'Milestone-based']} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Total fee or rate (Â£)" hint="e.g. 4500 or 450/day">
-          <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 4500" />
+        <Field label="Total fee or rate" hint="e.g. 4500 fixed or 450 per day" error={errors.feeAmount}>
+          <CurrencyInput name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} hasError={!!errors.feeAmount} />
         </Field>
         <Field label="Invoice payment terms">
           <Select name="paymentTerms" value={data.paymentTerms as string ?? ''} onChange={set} options={['7 days', '14 days', '30 days', '60 days']} />
@@ -244,20 +263,19 @@ function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; s
           <Select name="revisionsIncluded" value={data.revisionsIncluded as string ?? ''} onChange={set} options={['1 round', '2 rounds', '3 rounds', 'Unlimited', 'No revisions included']} />
         </Field>
         <Field label="Additional revision rate" optional hint="If revisions are used up">
-          <Input name="additionalRevisionRate" value={data.additionalRevisionRate as string ?? ''} onChange={set} placeholder="e.g. Â£150/hr" />
+          <CurrencyInput name="additionalRevisionRate" value={data.additionalRevisionRate as string ?? ''} onChange={set} suffix="/hr" />
         </Field>
       </div>
 
       <SectionHeading title="Intellectual Property" />
       <Field label="When does IP transfer to the client?">
-        <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only â€” IP stays with freelancer']} />
+        <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only — IP stays with freelancer']} />
       </Field>
-      <Toggle name="portfolioRight" value={data.portfolioRight as string ?? 'yes'} onChange={set} label="Freelancer may show work in portfolio?" />
 
       <SectionHeading title="Termination & Confidentiality" />
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Notice period to terminate">
-          <Select name="noticePeriod" value={data.noticePeriod as string ?? ''} onChange={set} options={['7 days', '14 days', '30 days', 'No notice â€” fixed term only']} />
+          <Select name="noticePeriod" value={data.noticePeriod as string ?? ''} onChange={set} options={['7 days', '14 days', '30 days', 'No notice — fixed term only']} />
         </Field>
         <Field label="Work in progress on termination">
           <Select name="terminationWIP" value={data.terminationWIP as string ?? ''} onChange={set} options={['Client pays for work done to date', 'Freelancer keeps deposit', 'Full fee remains due']} />
@@ -280,7 +298,7 @@ function NdaMutualQuestions({ data, set, errors }: { data: IntakeData; set: (k: 
       <Field label="Purpose of this NDA">
         <Select name="ndaPurpose" value={data.ndaPurpose as string ?? ''} onChange={set} options={['Exploring a business partnership', 'Discussing a potential project', 'Due diligence / acquisition', 'Pre-employment discussions', 'Licensing negotiations', 'Supplier relationship', 'Other']} />
       </Field>
-      <Field label="Describe the confidential information to be shared" hint="Be specific â€” this defines what is protected.">
+      <Field label="Describe the confidential information to be shared" hint="Be specific — this defines what is protected.">
         <Textarea name="confidentialInfo" value={data.confidentialInfo as string ?? ''} onChange={set} placeholder="e.g. Business plans, client lists, financial forecasts, proprietary software architecture" rows={3} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
@@ -310,10 +328,10 @@ function NdaOneWayQuestions({ data, set, errors }: { data: IntakeData; set: (k: 
     <div className="space-y-5">
       <SectionHeading title="Disclosing Party" />
       <Field label="Who is disclosing the confidential information?">
-        <Select name="disclosingParty" value={data.disclosingParty as string ?? ''} onChange={set} options={['You (the user â€” Party 1)', 'The other party (Party 2)']} />
+        <Select name="disclosingParty" value={data.disclosingParty as string ?? ''} onChange={set} options={['You (the user — Party 1)', 'The other party (Party 2)']} />
       </Field>
       <Field label="What is the receiving party permitted to do with the information?">
-        <Select name="permittedUse" value={data.permittedUse as string ?? ''} onChange={set} options={['Evaluate only â€” no further use', 'Use in delivery of a specific project', 'Internal business purposes only', 'Cannot share with any third parties']} />
+        <Select name="permittedUse" value={data.permittedUse as string ?? ''} onChange={set} options={['Evaluate only — no further use', 'Use in delivery of a specific project', 'Internal business purposes only', 'Cannot share with any third parties']} />
       </Field>
 
       <SectionHeading title="Purpose & Information" />
@@ -340,23 +358,23 @@ function RetainerQuestions({ data, set, errors }: { data: IntakeData; set: (k: s
     <div className="space-y-5">
       <SectionHeading title="Services" />
       <Field label="Describe the ongoing services" hint="What will you be doing each month?">
-        <Textarea name="retainerServices" value={data.retainerServices as string ?? ''} onChange={set} placeholder="e.g. Social media management â€” 20 posts/month across Instagram, LinkedIn and Twitter. Monthly analytics report." rows={3} />
+        <Textarea name="retainerServices" value={data.retainerServices as string ?? ''} onChange={set} placeholder="e.g. Social media management — 20 posts/month across Instagram, LinkedIn and Twitter. Monthly analytics report." rows={3} />
       </Field>
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Hours included per month">
           <Input name="retainerHours" value={data.retainerHours as string ?? ''} onChange={set} placeholder="e.g. 20" />
         </Field>
         <Field label="What happens to unused hours?">
-          <Select name="unusedHours" value={data.unusedHours as string ?? ''} onChange={set} options={['Lost â€” does not roll over', 'Roll over to next month (max 1 month)', 'Credited as discount']} />
+          <Select name="unusedHours" value={data.unusedHours as string ?? ''} onChange={set} options={['Lost — does not roll over', 'Roll over to next month (max 1 month)', 'Credited as discount']} />
         </Field>
       </div>
       <Field label="Overflow hours rate (if hours exceeded)" optional>
-        <Input name="overflowRate" value={data.overflowRate as string ?? ''} onChange={set} placeholder="e.g. Â£150/hr" />
+        <Input name="overflowRate" value={data.overflowRate as string ?? ''} onChange={set} placeholder="e.g. £150/hr" />
       </Field>
 
       <SectionHeading title="Payment" />
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Monthly retainer fee (Â£)">
+        <Field label="Monthly retainer fee (£)">
           <Input name="retainerFee" value={data.retainerFee as string ?? ''} onChange={set} placeholder="e.g. 2000" />
         </Field>
         <Field label="Payment due date each month">
@@ -397,8 +415,8 @@ function SubcontractorQuestions({ data, set, errors }: { data: IntakeData; set: 
         </Field>
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Total fee or rate (Â£)">
-          <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 3000" />
+        <Field label="Total fee or rate" error={errors.feeAmount}>
+          <CurrencyInput name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} hasError={!!errors.feeAmount} />
         </Field>
         <Field label="Payment terms after delivery">
           <Select name="paymentTerms" value={data.paymentTerms as string ?? ''} onChange={set} options={['7 days after client accepts work', '14 days after delivery', '30 days after delivery']} />
@@ -436,8 +454,8 @@ function ClientServiceQuestions({ data, set, errors }: { data: IntakeData; set: 
         <Field label="Fee structure">
           <Select name="feeStructure" value={data.feeStructure as string ?? ''} onChange={set} options={['Fixed fee', 'Hourly rate', 'Day rate', 'Monthly retainer', 'Milestone-based']} />
         </Field>
-        <Field label="Fee amount (Â£)">
-          <Input name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} placeholder="e.g. 5000" />
+        <Field label="Fee amount" error={errors.feeAmount}>
+          <CurrencyInput name="feeAmount" value={data.feeAmount as string ?? ''} onChange={set} hasError={!!errors.feeAmount} />
         </Field>
       </div>
       <Field label="Invoice payment terms">
@@ -448,7 +466,7 @@ function ClientServiceQuestions({ data, set, errors }: { data: IntakeData; set: 
       <Toggle name="liabilityCap" value={data.liabilityCap as string ?? 'yes'} onChange={set} label="Limit your liability?" />
       {data.liabilityCap === 'yes' && (
         <Field label="Liability cap amount" hint="Typical: value of contract or 2x contract value">
-          <Select name="liabilityCapAmount" value={data.liabilityCapAmount as string ?? ''} onChange={set} options={['Value of the contract', '2x value of the contract', 'Â£10,000', 'Â£25,000', 'Â£50,000', 'Â£100,000']} />
+          <Select name="liabilityCapAmount" value={data.liabilityCapAmount as string ?? ''} onChange={set} options={['Value of the contract', '2x value of the contract', '£10,000', '£25,000', '£50,000', '£100,000']} />
         </Field>
       )}
       <Toggle name="excludeConsequential" value={data.excludeConsequential as string ?? 'yes'} onChange={set} label="Exclude liability for client's consequential losses (lost profits, etc)?" />
@@ -517,7 +535,7 @@ function LatePaymentQuestions({ data, set, errors }: { data: IntakeData; set: (k
         </Field>
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Invoice amount (Â£)" hint="Excluding VAT">
+        <Field label="Invoice amount (£)" hint="Excluding VAT">
           <Input name="invoiceAmount" value={data.invoiceAmount as string ?? ''} onChange={set} placeholder="e.g. 2500" />
         </Field>
         <Field label="Original payment due date">
@@ -525,7 +543,7 @@ function LatePaymentQuestions({ data, set, errors }: { data: IntakeData; set: (k
         </Field>
       </div>
       <Field label="What goods or services were these for?">
-        <Input name="invoiceDescription" value={data.invoiceDescription as string ?? ''} onChange={set} placeholder="e.g. Website design and development â€” completed June 2026" />
+        <Input name="invoiceDescription" value={data.invoiceDescription as string ?? ''} onChange={set} placeholder="e.g. Website design and development — completed June 2026" />
       </Field>
 
       <SectionHeading title="Chasing History" />
@@ -538,15 +556,15 @@ function LatePaymentQuestions({ data, set, errors }: { data: IntakeData; set: (k
       <Toggle name="invoiceAcknowledged" value={data.invoiceAcknowledged as string ?? 'no'} onChange={set} label="Has the debtor acknowledged the invoice?" />
 
       <SectionHeading title="Demands" />
-      <Field label="Final payment deadline" hint="Recommended: 7â€“14 days from today">
+      <Field label="Final payment deadline" hint="Recommended: 7—14 days from today">
         <Input name="finalDeadline" value={data.finalDeadline as string ?? ''} onChange={set} type="date" />
       </Field>
       <Field label="Intended next step if unpaid">
-        <Select name="legalThreat" value={data.legalThreat as string ?? ''} onChange={set} options={['Small claims court (up to Â£10,000)', 'County Court judgment (CCJ)', 'Pass to debt collection agency', 'Instruct solicitors', 'Not specified']} />
+        <Select name="legalThreat" value={data.legalThreat as string ?? ''} onChange={set} options={['Small claims court (up to £10,000)', 'County Court judgment (CCJ)', 'Pass to debt collection agency', 'Instruct solicitors', 'Not specified']} />
       </Field>
 
       <div className="p-4 border text-sm" style={{ borderColor: '#D8F3DC', backgroundColor: '#EDFAF2', color: '#1B4332' }}>
-        <strong>Auto-applied:</strong> Statutory interest at 8% above Bank of England base rate will be calculated from the due date, plus fixed compensation of Â£40â€“Â£100 under the Late Payment of Commercial Debts (Interest) Act 1998.
+        <strong>Auto-applied:</strong> Statutory interest at 8% above Bank of England base rate will be calculated from the due date, plus fixed compensation of £40—£100 under the Late Payment of Commercial Debts (Interest) Act 1998.
       </div>
     </div>
   )
@@ -584,7 +602,7 @@ function EmploymentOfferQuestions({ data, set, setArr, errors }: { data: IntakeD
 
       <SectionHeading title="Pay & Hours" />
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Annual salary (Â£)" hint="Minimum Â£11.44/hr from Apr 2024">
+        <Field label="Annual salary (£)" hint="Minimum £11.44/hr from Apr 2024">
           <Input name="annualSalary" value={data.annualSalary as string ?? ''} onChange={set} placeholder="e.g. 45000" />
         </Field>
         <Field label="Pay frequency">
@@ -596,7 +614,7 @@ function EmploymentOfferQuestions({ data, set, setArr, errors }: { data: IntakeD
           <Input name="hoursPerWeek" value={data.hoursPerWeek as string ?? ''} onChange={set} placeholder="e.g. 37.5" />
         </Field>
         <Field label="Core hours" optional>
-          <Input name="coreHours" value={data.coreHours as string ?? ''} onChange={set} placeholder="e.g. 9amâ€“5pm Monâ€“Fri" />
+          <Input name="coreHours" value={data.coreHours as string ?? ''} onChange={set} placeholder="e.g. 9am—5pm Mon—Fri" />
         </Field>
       </div>
 
@@ -606,7 +624,7 @@ function EmploymentOfferQuestions({ data, set, setArr, errors }: { data: IntakeD
           <Input name="holidayDays" value={data.holidayDays as string ?? ''} onChange={set} placeholder="e.g. 28" />
         </Field>
         <Field label="Holiday year runs">
-          <Select name="holidayYear" value={data.holidayYear as string ?? ''} onChange={set} options={['1 January â€“ 31 December', '1 April â€“ 31 March', 'Rolling anniversary of start date']} />
+          <Select name="holidayYear" value={data.holidayYear as string ?? ''} onChange={set} options={['1 January — 31 December', '1 April — 31 March', 'Rolling anniversary of start date']} />
         </Field>
       </div>
 
@@ -653,7 +671,7 @@ function EmploymentOfferQuestions({ data, set, setArr, errors }: { data: IntakeD
   )
 }
 
-// â”€â”€ Section heading helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Section heading helper â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function SectionHeading({ title }: { title: string }) {
   return (
@@ -663,11 +681,11 @@ function SectionHeading({ title }: { title: string }) {
   )
 }
 
-// â”€â”€ Step labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Step labels â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const STEPS = ['Your details', 'Their details', 'Contract details', 'Review']
 
-// â”€â”€ Main wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Main wizard â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComplete, onBack }: WizardProps) {
   const [step, setStep] = useState(0)
@@ -681,7 +699,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
   const set = (k: string, v: string) => setData((d) => ({ ...d, [k]: v }))
   const setArr = (k: string, v: string[]) => setData((d) => ({ ...d, [k]: v }))
 
-  // â”€â”€ Per-step validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Per-step validation â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   const getErrors = (): Record<string, string> => {
     const e: Record<string, string> = {}
@@ -812,7 +830,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
                   : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
                 }
               >
-                {i < step ? 'âœ“' : i + 1}
+                {i < step ? 'âœ"' : i + 1}
               </div>
               <span className="text-xs font-medium hidden sm:block" style={{ color: i <= step ? '#1B4332' : '#9CA3AF' }}>{label}</span>
             </div>
@@ -829,7 +847,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
           exit={{ opacity: 0, x: -12 }}
           transition={{ duration: 0.2 }}
         >
-          {/* â”€â”€ Step 0: Your Details â”€â”€ */}
+          {/* â"€â"€ Step 0: Your Details â"€â"€ */}
           {step === 0 && (
             <div className="space-y-4">
               <div className="mb-5">
@@ -858,18 +876,18 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
             </div>
           )}
 
-          {/* â”€â”€ Step 1: Their Details â”€â”€ */}
+          {/* â"€â"€ Step 1: Their Details â"€â"€ */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="mb-5">
                 <h2 className="font-display text-xl font-bold mb-1" style={{ color: '#1B4332' }}>Their details</h2>
-                <p className="text-sm" style={{ color: '#6B7280' }}>The client or other party â€” Party 2 in the contract.</p>
+                <p className="text-sm" style={{ color: '#6B7280' }}>The client or other party — Party 2 in the contract.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Full name or company name" error={errors.theirName}>
                   <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Restaurant Group Ltd" hasError={!!errors.theirName} />
                 </Field>
-                <Field label="Contact name" optional hint="If company â€” who is signing?">
+                <Field label="Contact name" optional hint="If company — who is signing?">
                   <Input name="theirContactName" value={data.theirContactName} onChange={set} placeholder="e.g. Tom Jones" />
                 </Field>
               </div>
@@ -882,7 +900,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
             </div>
           )}
 
-          {/* â”€â”€ Step 2: Contract Questions â”€â”€ */}
+          {/* â"€â"€ Step 2: Contract Questions â"€â"€ */}
           {step === 2 && (
             <div>
               <div className="mb-5">
@@ -903,7 +921,7 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
             </div>
           )}
 
-          {/* â”€â”€ Step 3: Review â”€â”€ */}
+          {/* â"€â"€ Step 3: Review â"€â"€ */}
           {step === 3 && (
             <div>
               <div className="mb-5">
@@ -963,11 +981,15 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-5 flex items-start gap-3 px-4 py-3 text-sm border"
+          className="mt-5 px-4 py-3 text-sm border"
           style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}
         >
-          <span className="font-bold flex-shrink-0">!</span>
-          <span>Please fill in all required fields before continuing. Fields with errors are highlighted above.</span>
+          <p className="font-bold mb-1">Please complete the following before continuing:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            {Object.values(getErrors()).map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+          </ul>
         </motion.div>
       )}
 
@@ -998,6 +1020,10 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
     </div>
   )
 }
+
+
+
+
 
 
 
