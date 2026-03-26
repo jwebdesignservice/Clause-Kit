@@ -28,7 +28,7 @@ import {
   Download,
   ExternalLink,
   Search,
-  LogOut,
+  // LogOut removed — account section uses text buttons now
   Menu,
   X,
   ChevronDown,
@@ -683,12 +683,35 @@ export default function AppDashboard() {
           </button>
         </div>
 
-        {/* Footer */}
+        {/* Account section */}
         <div className="border-t flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
-          <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-[#FAFAF8] transition-colors" style={{ color: '#6B7280' }}>
-            <LogOut className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-            Back to site
-          </Link>
+          {session ? (
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-7 h-7 flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: '#2D6A4F' }}>
+                  {(session.user?.name ?? session.user?.email ?? 'U').slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold truncate" style={{ color: '#1B4332' }}>{session.user?.name ?? 'User'}</p>
+                  <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{session.user?.email}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => navigate('settings' as Tab)} className="flex-1 text-xs font-medium py-1.5 border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
+                  Settings
+                </button>
+                <button onClick={() => signOut({ callbackUrl: '/' })} className="flex-1 text-xs font-medium py-1.5 border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
+                  Sign out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-3">
+              <Link href="/auth/signin" className="w-full flex items-center justify-center py-2 text-xs font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
+                Sign in
+              </Link>
+            </div>
+          )}
         </div>
       </aside>
 

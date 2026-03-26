@@ -117,13 +117,13 @@ function Toggle({ name, value, onChange, label }: {
       <button
         type="button"
         onClick={() => onChange(name, on ? 'no' : 'yes')}
-        className="relative w-10 h-5 transition-colors flex-shrink-0"
-        style={{ backgroundColor: on ? '#2D6A4F' : '#D1D5DB', borderRadius: 9999 }}
+        className="flex items-center gap-2 flex-shrink-0 text-xs font-semibold px-3 py-1.5 border transition-colors"
+        style={on
+          ? { backgroundColor: '#D8F3DC', borderColor: '#2D6A4F', color: '#1B4332' }
+          : { backgroundColor: '#FAFAF8', borderColor: '#E5E5E2', color: '#9CA3AF' }
+        }
       >
-        <span
-          className="absolute top-0.5 w-4 h-4 bg-white transition-transform"
-          style={{ borderRadius: 9999, transform: on ? 'translateX(20px)' : 'translateX(2px)' }}
-        />
+        {on ? 'Yes' : 'No'}
       </button>
     </div>
   )
