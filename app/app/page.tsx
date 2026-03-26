@@ -306,9 +306,15 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
     .filter(([k]) => intake[k] && String(intake[k]).trim())
     .map(([k, label]) => ({ label, value: String(intake[k]) }))
 
-  const isHeading = (line: string) => {
-    const t = line.trim()
-    return (t === t.toUpperCase() && t.length > 3 && !/^\d/.test(t)) || t.endsWith(':')
+  // Classify line types
+  const classifyBlock = (text: string): 'section-heading' | 'party-block' | 'signature' | 'footer' | 'body' => {
+    const t = text.trim()
+    if (/^\d{2}\.\s+[A-Z]/.test(t)) return 'section-heading'
+    if (t.startsWith('PARTY 1') || t.startsWith('PARTY 2')) return 'party-block'
+    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || t.startsWith('PARTY 1 —') || t.startsWith('PARTY 2 —')) return 'signature'
+    if (t.startsWith('---') || t.startsWith('This document was generated')) return 'footer'
+    if (t === t.toUpperCase() && t.length > 5 && t.length < 60 && !t.startsWith('-')) return 'section-heading'
+    return 'body'
   }
 
   return (
@@ -318,39 +324,105 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
-            ← Back to dashboard
+            &larr; Back to dashboard
           </button>
 
-          {/* Editable title */}
-          <div
-            contentEditable
-            suppressContentEditableWarning
-            onBlur={(e) => setEditableTitle(e.currentTarget.textContent ?? '')}
-            className="font-display text-3xl font-bold mb-1 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-            style={{ color: '#1B4332', minHeight: '2rem' }}
-          >
-            {contract.title}
+          {/* Header block */}
+          <div className="border-b pb-6 mb-8" style={{ borderColor: '#E5E5E2' }}>
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => setEditableTitle(e.currentTarget.textContent ?? '')}
+              className="font-display text-3xl font-bold mb-2 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+              style={{ color: '#1B4332', minHeight: '2rem' }}
+            >
+              {contract.title}
+            </div>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>
+              {contract.typeName} &middot; Generated {new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; Click any text to edit
+            </p>
           </div>
-          <p className="text-xs mb-8" style={{ color: '#9CA3AF' }}>
-            {contract.typeName} · Generated {new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · Click any text to edit
-          </p>
 
-          {/* Document body */}
-          <div className="space-y-4">
+          {/* Document body — parsed sections */}
+          <div>
             {blocks.map((block, i) => {
-              const heading = isHeading(block)
+              const type = classifyBlock(block)
+
+              if (type === 'section-heading') {
+                return (
+                  <div key={i} className="mt-8 mb-3">
+                    <div className="border-b pb-2 mb-3" style={{ borderColor: '#E5E5E2' }}>
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => {
+                          const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
+                        }}
+                        className="text-sm font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                        style={{ color: '#1B4332' }}
+                      >
+                        {block}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              if (type === 'party-block') {
+                return (
+                  <div key={i} className="mb-4 p-4 border-l-4" style={{ borderLeftColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
+                      }}
+                      className="text-sm leading-relaxed outline-none"
+                      style={{ color: '#374151' }}
+                    >
+                      {block}
+                    </div>
+                  </div>
+                )
+              }
+
+              if (type === 'signature') {
+                return (
+                  <div key={i} className="mt-8 pt-6 border-t" style={{ borderColor: '#1B4332' }}>
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
+                      }}
+                      className="text-sm font-semibold leading-loose outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                      style={{ color: '#1B4332' }}
+                    >
+                      {block}
+                    </div>
+                  </div>
+                )
+              }
+
+              if (type === 'footer') {
+                return (
+                  <div key={i} className="mt-8 pt-4 border-t text-center" style={{ borderColor: '#E5E5E2' }}>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>{block}</p>
+                  </div>
+                )
+              }
+
+              // Body text
               return (
                 <div
                   key={i}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => {
-                    const newBlocks = [...blocks]
-                    newBlocks[i] = e.currentTarget.textContent ?? ''
-                    setEditableContent(newBlocks.join('\n\n'))
+                    const nb = [...blocks]; nb[i] = e.currentTarget.textContent ?? ''; setEditableContent(nb.join('\n\n'))
                   }}
-                  className={`outline-none focus:bg-[#FAFAF8] px-1 -mx-1 leading-relaxed ${heading ? 'font-bold text-sm uppercase tracking-wide mt-6' : 'text-sm'}`}
-                  style={{ color: heading ? '#1B4332' : '#374151', minHeight: '1.5rem' }}
+                  className="text-sm leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                  style={{ color: '#374151', minHeight: '1.2rem' }}
                 >
                   {block}
                 </div>
