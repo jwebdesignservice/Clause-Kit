@@ -98,7 +98,7 @@ const FAQS = [
 ]
 
 const MARQUEE_TEXT = 'Freelancers \u00B7 Web Agencies \u00B7 Consultants \u00B7 Tradespeople \u00B7 Care Providers \u00B7 Small Businesses \u00B7 Designers \u00B7 Developers \u00B7 Recruiters \u00B7 '
-const PROOF_TEXT = '2,000+ contracts generated \u00B7 Trusted by UK freelancers \u00B7 Reviewed by UK solicitors \u00B7 ClauseKit powered \u00B7 IR35 aware \u00B7 GDPR compliant \u00B7 English & Welsh law \u00B7 '
+const PROOF_TEXT = '2,000+ contracts generated \u00B7 UK-only \u2014 not a global template tool \u00B7 IR35-aware \u00B7 Solicitor-reviewed \u00B7 English & Welsh law \u00B7 GDPR compliant \u00B7 \u00A37 flat fee \u00B7 No account needed \u00B7 '
 
 // ── WhatsApp SVG ───────────────────────────────────────────────────────────
 
@@ -350,7 +350,7 @@ export default function HomePage() {
             style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}
           >
             <Shield className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
-            ClauseKit &middot; UK Law &middot; Solicitor-Reviewed
+            The only UK-only contract builder &middot; Solicitor-reviewed &middot; IR35-aware
           </motion.div>
 
           <motion.h1
@@ -358,12 +358,12 @@ export default function HomePage() {
             className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6 max-w-4xl mx-auto"
             style={{ color: '#1B4332' }}
           >
-            The only UK contract builder<br />
-            <em className="italic font-display" style={{ color: '#2D6A4F' }}>you&rsquo;ll ever need.</em>
+            UK contracts built for<br />
+            <em className="italic font-display" style={{ color: '#2D6A4F' }}>UK freelancers.</em>
           </motion.h1>
 
           <motion.p variants={fadeUp} className="text-xl max-w-2xl mx-auto mb-10" style={{ color: '#6B7280' }}>
-            Describe your situation in plain English. ClauseKit drafts a bespoke, UK-law contract in under 2&nbsp;minutes. Pay &pound;7 to download. No solicitor needed.
+            Not a template. Not a generic AI tool. ClauseKit generates bespoke, IR35-aware contracts under English & Welsh law — reviewed by a real UK solicitor. Ready in 2 minutes. &pound;7 to download.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
@@ -388,7 +388,7 @@ export default function HomePage() {
           </motion.div>
 
           <motion.p variants={fadeUp} className="text-sm" style={{ color: '#9CA3AF' }}>
-            No account needed &middot; Generate free &middot; Pay only to download
+            No account needed &middot; Generate free &middot; Pay £7 to download &middot; English & Welsh law only
           </motion.p>
         </motion.div>
         </div>
@@ -530,9 +530,9 @@ export default function HomePage() {
         <ComparisonBg />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>The Comparison</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>How We Compare</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
-              ClauseKit vs your other options
+              Other tools cover the world.<br />We cover the UK — properly.
             </h2>
           </motion.div>
 
@@ -594,7 +594,7 @@ export default function HomePage() {
           </motion.div>
 
           <motion.p variants={fadeUp} className="text-center text-sm mt-6" style={{ color: '#6B7280' }}>
-            ClauseKit is the only option that&rsquo;s bespoke, instant, affordable, and UK-law compliant.
+            Every other AI contract tool supports 50+ jurisdictions as an afterthought. ClauseKit is built exclusively for English & Welsh law — with IR35 awareness, Late Payment Act clauses, and GDPR built in from day one.
           </motion.p>
         </div>
       </Section>
@@ -655,18 +655,21 @@ export default function HomePage() {
         <TrustBg />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative" style={{ zIndex: 1 }}>
           <motion.div variants={fadeUp} className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Why Trust Us</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Why ClauseKit Wins</p>
             <h2 className="font-display text-3xl sm:text-4xl font-bold" style={{ color: '#1B4332' }}>
-              Built for UK freelancers, by people who&rsquo;ve needed this
+              Built exclusively for UK freelancers.<br />Not bolted on. Not an afterthought.
             </h2>
+            <p className="text-base mt-4 max-w-2xl mx-auto" style={{ color: '#6B7280' }}>
+              Every other AI contract tool was built for the US market and added UK support later. ClauseKit was built UK-first, from the ground up.
+            </p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
             {[
-              { Icon: Shield, title: 'Solicitor-Reviewed', body: 'Every contract type has been reviewed by a qualified UK solicitor before it ever reaches you.' },
-              { Icon: Zap, title: 'ClauseKit Powered', body: 'Not a template \u2014 a genuinely bespoke document built for your exact situation, every time.' },
-              { Icon: FileText, title: 'UK Law Only', body: 'English & Welsh law, Late Payment of Commercial Debts Act 1998, IR35 awareness baked in.' },
-              { Icon: Lock, title: 'GDPR Compliant', body: 'We don\u2019t store your contract content. Generate, pay, download \u2014 that\u2019s it.' },
+              { Icon: Shield, title: 'Solicitor-Reviewed', body: 'A qualified UK solicitor reviewed every contract type before it ever reached a user. Not AI alone — human legal expertise baked in.' },
+              { Icon: Zap, title: 'IR35-Aware', body: 'Every freelance and retainer contract includes IR35 awareness. Most global tools don\'t even know what IR35 is.' },
+              { Icon: FileText, title: 'UK Law Exclusively', body: 'English & Welsh law only. Late Payment of Commercial Debts Act 1998. GDPR clauses. Nothing generic, nothing foreign.' },
+              { Icon: Lock, title: 'No Account. No Subscription.', body: 'Generate free. Pay £7 to download. No sign-up, no monthly fee, no lock-in. The lowest friction in the market.' },
             ].map((t) => (
               <motion.div key={t.title} variants={fadeUp} className="bg-white border p-6" style={{ borderColor: '#E5E5E2' }}>
                 <div className="w-10 h-10 flex items-center justify-center mb-4" style={{ backgroundColor: '#D8F3DC' }}>
@@ -809,10 +812,10 @@ export default function HomePage() {
           className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <h2 className="font-display text-4xl sm:text-5xl font-bold mb-5">
-            Your next contract is 2 minutes away
+            Stop using generic templates.<br />Get a contract built for you.
           </h2>
           <p className="text-xl mb-10" style={{ color: '#D8F3DC' }}>
-            No account. No solicitor. No waiting. &pound;7 and you&rsquo;re protected.
+            UK law. IR35-aware. Solicitor-reviewed. &pound;7 to download. Ready in 2 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
             <Link
