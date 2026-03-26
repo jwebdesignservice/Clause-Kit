@@ -509,7 +509,9 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
     if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
     if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
     if (t.startsWith('PARTY 1 —') || t.startsWith('PARTY 2 —') || t.startsWith('PARTY 1—') || t.startsWith('PARTY 2—')) return { type: 'signature', body: t }
-    if (t.startsWith('ACCEPTANCE') || t.includes('Signature:') || (t.includes('___') && (t.includes('Full Name') || t.includes('Date')))) return { type: 'signature', body: t }
+    if (t.startsWith('ACCEPTANCE') || (t.includes('Signature:') && t.includes('___')) || (t.includes('___') && (t.includes('Full Name') || t.includes('Date:')))) return { type: 'signature', body: t }
+    // Suppress any remaining raw signature text lines
+    if (t.includes('Signature:') && t.includes('Full Name:')) return { type: 'signature', body: t }
 
     // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
     const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
@@ -582,54 +584,57 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               if (parsed.type === 'party') {
-                // Parse party info into structured fields
                 const isP1 = block.includes('PARTY 1')
-                const label = isP1 ? 'Service Provider' : 'Client'
-                const partyNum = isP1 ? '1' : '2'
-                // Extract fields from "Name: X Address: Y Email: Z" format
-                const nameMatch = block.match(/Name:\s*([^A-Z][^\n]*?)(?:\s*Address:|$)/i)
+                const title = isP1 ? 'Provider' : 'Client'
+                // Extract fields
+                const nameMatch = block.match(/Name:\s*([^\n]*?)(?:\s*(?:Company|Address|Email):|$)/i)
+                const companyMatch = block.match(/Company:\s*([^\n]*?)(?:\s*(?:Address|Email):|$)/i)
                 const addressMatch = block.match(/Address:\s*([^\n]*?)(?:\s*Email:|$)/i)
                 const emailMatch = block.match(/Email:\s*([^\s\n]+)/i)
                 const pName = nameMatch?.[1]?.trim() ?? ''
+                const pCompany = companyMatch?.[1]?.trim() ?? ''
                 const pAddress = addressMatch?.[1]?.trim() ?? ''
                 const pEmail = emailMatch?.[1]?.trim() ?? ''
 
                 return (
-                  <div key={i} className="mb-4 p-5 border-l-4" style={{ borderLeftColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>
-                      Party {partyNum} &mdash; {label}
-                    </p>
-                    <div className="space-y-1.5">
-                      {pName && (
-                        <div className="flex gap-2">
-                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Name</span>
-                          <span className="text-sm" style={{ color: '#1B4332' }}>{pName}</span>
-                        </div>
-                      )}
-                      {pAddress && (
-                        <div className="flex gap-2">
-                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Address</span>
-                          <span className="text-sm" style={{ color: '#374151' }}>{pAddress}</span>
-                        </div>
-                      )}
-                      {pEmail && (
-                        <div className="flex gap-2">
-                          <span className="text-xs font-semibold w-16 flex-shrink-0" style={{ color: '#6B7280' }}>Email</span>
-                          <span className="text-sm" style={{ color: '#374151' }}>{pEmail}</span>
-                        </div>
-                      )}
+                  <div key={i} className="mb-5 border" style={{ borderColor: '#E5E5E2', borderLeftWidth: 4, borderLeftColor: '#1B4332' }}>
+                    <div className="px-5 py-3 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#888' }}>{title}</p>
                     </div>
-                    {!pName && !pAddress && !pEmail && (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={(e) => updateBlock(e.currentTarget.textContent ?? '')}
-                        className="text-sm leading-relaxed outline-none"
-                        style={{ color: '#374151', fontWeight: 400 }}
-                      >
-                        {block}
+                    <div className="px-5 py-4">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        {pName && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Name</p>
+                            <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pName}</p>
+                          </div>
+                        )}
+                        {pCompany && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Business Name</p>
+                            <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pCompany}</p>
+                          </div>
+                        )}
+                        {pEmail && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Email Address</p>
+                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pEmail}</p>
+                          </div>
+                        )}
+                        {!pCompany && pName && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Phone</p>
+                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>N/A</p>
+                          </div>
+                        )}
+                        {pAddress && (
+                          <div className="col-span-2">
+                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>Business Address</p>
+                            <p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 4 }}>{pAddress}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 )
               }
