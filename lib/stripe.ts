@@ -90,7 +90,6 @@ export async function createPerDocCheckout(
     mode: "payment",
     success_url: successUrl,
     cancel_url: cancelUrl,
-    currency: "gbp",
   });
 
   return session.url!;

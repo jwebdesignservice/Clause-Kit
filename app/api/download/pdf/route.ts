@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       y: PAGE_HEIGHT - HEADER_HEIGHT,
       width: PAGE_WIDTH,
       height: HEADER_HEIGHT,
-      color: rgb(0.176, 0.263, 0.31), // #2D6A4F
+      color: rgb(0.176, 0.416, 0.310), // #2D6A4F
     });
 
     // Logo / brand in header
