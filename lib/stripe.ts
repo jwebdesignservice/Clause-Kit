@@ -57,6 +57,7 @@ export async function createSubscriptionCheckout(
   successUrl: string,
   cancelUrl: string
 ): Promise<string> {
+  // Note: currency is determined by the Price object — do not pass it at session level for subscription mode
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     line_items: [
@@ -68,7 +69,6 @@ export async function createSubscriptionCheckout(
     mode: "subscription",
     success_url: successUrl,
     cancel_url: cancelUrl,
-    currency: "gbp",
   });
 
   return session.url!;

@@ -764,12 +764,13 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <button
-                className="w-full py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+              <Link
+                href="/app"
+                className="flex items-center justify-center w-full py-3 text-sm font-semibold transition-opacity hover:opacity-90"
                 style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}
               >
                 Start unlimited &rarr;
-              </button>
+              </Link>
             </motion.div>
           </div>
 

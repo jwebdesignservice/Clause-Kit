@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
@@ -29,8 +30,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sessionParams: any = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       line_items: [lineItem],
       mode: 'subscription',
       success_url: `${appUrl}/download/{CHECKOUT_SESSION_ID}?contractId=${contractId}&mode=subscription`,
