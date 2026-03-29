@@ -332,11 +332,17 @@ function renderInlineFormatting(text: string): React.ReactNode[] {
   })
 }
 
-function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string) => void }) {
+function FormattedBody({ text, onUpdate, bodySize = 14, bodyColor = '#374151', bodyWeight = 400 }: {
+  text: string
+  onUpdate: (t: string) => void
+  bodySize?: number
+  bodyColor?: string
+  bodyWeight?: 400 | 500 | 600
+}) {
   const lines = text.split('\n')
 
   // Detect if this is a table block (contains | separators)
-  const tableLines = lines.filter((l) => l.includes('|') && l.trim().length > 3)
+  const tableLines = lines.filter((l) => l.includes('|') && l.trim().length > 3 && !/^\|?[\s\-|]+\|?$/.test(l.trim()))
   const isTable = tableLines.length >= 2
 
   // Detect if this contains bullets
@@ -364,10 +370,10 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
                   borderTop: isTotal ? '2px solid #1B4332' : undefined,
                 }}
               >
-                <span className={`text-sm ${isHeader || isTotal ? 'font-bold' : ''}`} style={{ color: isHeader ? '#FFFFFF' : '#374151' }}>
+                <span className={`${isHeader || isTotal ? 'font-bold' : ''}`} style={{ fontSize: bodySize, color: isHeader ? '#FFFFFF' : bodyColor, fontWeight: isHeader || isTotal ? undefined : bodyWeight }}>
                   {row[0] ?? ''}
                 </span>
-                <span className={`text-sm text-right ${isHeader || isTotal ? 'font-bold' : ''}`} style={{ color: isHeader ? '#FFFFFF' : '#1B4332', fontFamily: isHeader ? undefined : 'monospace' }}>
+                <span className={`text-right ${isHeader || isTotal ? 'font-bold' : ''}`} style={{ fontSize: bodySize, color: isHeader ? '#FFFFFF' : '#1B4332', fontFamily: isHeader ? undefined : 'monospace', fontWeight: isHeader || isTotal ? undefined : bodyWeight }}>
                   {row[1] ?? ''}
                 </span>
               </div>
@@ -376,7 +382,7 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
         </div>
         {/* Non-table text below */}
         {nonTableLines.filter((l) => l.trim()).map((line, li) => (
-          <p key={li} className="text-sm leading-relaxed mb-1 italic" style={{ color: '#6B7280' }}>
+          <p key={li} className="leading-relaxed mb-1 italic" style={{ fontSize: bodySize, color: '#6B7280' }}>
             {renderInlineFormatting(line)}
           </p>
         ))}
@@ -397,13 +403,13 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
     return (
       <div className="mb-3">
         {otherLines.length > 0 && otherLines.map((line, li) => (
-          <p key={`p-${li}`} className="text-sm leading-relaxed mb-2" style={{ color: '#374151' }}>
+          <p key={`p-${li}`} className="leading-relaxed mb-2" style={{ fontSize: bodySize, color: bodyColor, fontWeight: bodyWeight }}>
             {renderInlineFormatting(line)}
           </p>
         ))}
         <ul className="space-y-1.5 ml-1">
           {bulletLines.map((item, bi) => (
-            <li key={bi} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: '#374151' }}>
+            <li key={bi} className="flex gap-2.5 leading-relaxed" style={{ fontSize: bodySize, color: bodyColor, fontWeight: bodyWeight }}>
               <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5" style={{ backgroundColor: '#2D6A4F', borderRadius: '50%' }} />
               <span>{renderInlineFormatting(item)}</span>
             </li>
@@ -421,9 +427,9 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
         {lines.filter((l) => l.trim()).map((line, li) => {
           const trimmed = line.trim()
           if (/^[A-Z][A-Za-z\s]+:$/.test(trimmed)) {
-            return <p key={li} className="text-sm font-semibold mt-3" style={{ color: '#1B4332' }}>{trimmed}</p>
+            return <p key={li} className="font-semibold mt-3" style={{ fontSize: bodySize, color: '#1B4332' }}>{trimmed}</p>
           }
-          return <p key={li} className="text-sm leading-relaxed" style={{ color: '#374151' }}>{renderInlineFormatting(trimmed)}</p>
+          return <p key={li} className="leading-relaxed" style={{ fontSize: bodySize, color: bodyColor, fontWeight: bodyWeight }}>{renderInlineFormatting(trimmed)}</p>
         })}
       </div>
     )
@@ -435,8 +441,8 @@ function FormattedBody({ text, onUpdate }: { text: string; onUpdate: (t: string)
       contentEditable
       suppressContentEditableWarning
       onBlur={(e) => onUpdate(e.currentTarget.textContent ?? '')}
-      className="text-sm leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-      style={{ color: '#374151', fontWeight: 400, minHeight: '1.2rem' }}
+      className="leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+      style={{ fontSize: bodySize, color: bodyColor, fontWeight: bodyWeight, minHeight: '1.2rem' }}
     >
       {text}
     </div>
@@ -790,7 +796,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Left: Editable Document ── */}
-      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont, fontWeight: docFontWeight }}>
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont }}>
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
@@ -863,7 +869,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                     )}
                     {/* Section body — normal weight, below heading */}
                     {parsed.body && (
-                      <FormattedBody text={parsed.body} onUpdate={(newBody) => updateBlock(`${parsed.heading ?? ''}\n${newBody}`)} />
+                      <FormattedBody text={parsed.body} onUpdate={(newBody) => updateBlock(`${parsed.heading ?? ''}\n${newBody}`)} bodySize={docBodySize} bodyColor={docBodyColor} bodyWeight={docFontWeight} />
                     )}
                   </div>
                 )
@@ -888,7 +894,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
               }
 
               // Body text — check for bullets, tables, bold
-              return <FormattedBody key={i} text={block} onUpdate={updateBlock} />
+              return <FormattedBody key={i} text={block} onUpdate={updateBlock} bodySize={docBodySize} bodyColor={docBodyColor} bodyWeight={docFontWeight} />
             
             })}
           </div>
