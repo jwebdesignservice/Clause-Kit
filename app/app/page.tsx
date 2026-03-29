@@ -39,7 +39,7 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help' | 'contract-view'
+type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help' | 'contract-view' | 'subscription'
 // Step 1 = choose type, 2 = intake wizard, 3 = loading, 4 = preview
 type Step = 1 | 2 | 3 | 4
 
@@ -88,6 +88,7 @@ const SIDEBAR_NAV: { id: Tab; label: string; Icon: React.ComponentType<{ classNa
   { id: 'my-contracts', label: 'My Contracts', Icon: FileText },
   { id: 'templates', label: 'Templates', Icon: LayoutTemplate },
   { id: 'pricing', label: 'Pricing', Icon: CreditCard },
+  { id: 'subscription', label: 'My Plan', Icon: Star },
   { id: 'help', label: 'Help', Icon: HelpCircle },
 ]
 
@@ -1767,6 +1768,91 @@ export default function AppDashboard() {
               </motion.div>
             )}
 
+            {/* ── MY PLAN / SUBSCRIPTION ── */}
+            {activeTab === 'subscription' && (
+              <motion.div key="subscription" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="p-6 lg:p-8">
+                <div className="mb-6">
+                  <h1 className="font-display text-2xl font-bold mb-1" style={{ color: '#1B4332' }}>My Plan</h1>
+                  <p className="text-sm" style={{ color: '#6B7280' }}>Manage your subscription and billing.</p>
+                </div>
+
+                <div className="max-w-lg space-y-4">
+                  {/* Plan status card */}
+                  <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+                    <div className="px-5 py-3 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: isSubscribed ? '#1B4332' : '#FAFAF8' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: isSubscribed ? '#D8F3DC' : '#9CA3AF' }}>Current plan</p>
+                    </div>
+                    <div className="px-5 py-4">
+                      {isSubscribed ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2" style={{ backgroundColor: '#52B788', borderRadius: '50%' }} />
+                              <p className="text-base font-bold" style={{ color: '#1B4332' }}>Pro Plan — Active</p>
+                            </div>
+                            <p className="text-sm" style={{ color: '#6B7280' }}>£19/month · up to 20 contracts per day</p>
+                          </div>
+                          <span className="text-xs font-bold px-2 py-1" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>ACTIVE</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-base font-bold mb-1" style={{ color: '#1B4332' }}>Pay as you go</p>
+                            <p className="text-sm" style={{ color: '#6B7280' }}>£7 per contract download</p>
+                          </div>
+                          <button
+                            onClick={handleSubscribe}
+                            disabled={subLoading}
+                            className="px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center gap-1"
+                            style={{ backgroundColor: '#2D6A4F' }}
+                          >
+                            {subLoading ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : 'Upgrade to Pro'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Usage today */}
+                  {isSubscribed && (
+                    <div className="border px-5 py-4" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Today&apos;s usage</p>
+                      <p className="text-sm" style={{ color: '#374151' }}>Contracts generated today reset at midnight UTC.</p>
+                    </div>
+                  )}
+
+                  {/* Manage billing — Stripe portal */}
+                  {isSubscribed && (
+                    <div className="border px-5 py-4" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Billing & subscription</p>
+                      <p className="text-sm mb-4" style={{ color: '#374151' }}>Update your payment method, view invoices, or cancel your subscription via the Stripe billing portal.</p>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch('/api/subscription/portal', { method: 'POST' })
+                          const data = await res.json()
+                          if (data.url) window.location.href = data.url
+                        }}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
+                        style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+                      >
+                        <CreditCard className="w-4 h-4" /> Manage billing
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Legal links */}
+                  <div className="border px-5 py-4" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Legal</p>
+                    <div className="flex flex-col gap-2">
+                      <a href="/terms" target="_blank" className="text-sm hover:opacity-70 transition-opacity" style={{ color: '#2D6A4F' }}>Terms & Conditions →</a>
+                      <a href="/privacy" target="_blank" className="text-sm hover:opacity-70 transition-opacity" style={{ color: '#2D6A4F' }}>Privacy Policy →</a>
+                      <a href="/refunds" target="_blank" className="text-sm hover:opacity-70 transition-opacity" style={{ color: '#2D6A4F' }}>Refund Policy →</a>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* ── CONTRACT VIEW ── */}
             {activeTab === 'contract-view' && viewingContractId && (() => {
               const c = savedContracts.find(s => s.id === viewingContractId)
@@ -1793,6 +1879,16 @@ export default function AppDashboard() {
 
           </AnimatePresence>
         </main>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t px-6 py-3 flex items-center justify-between" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+          <p className="text-xs" style={{ color: '#9CA3AF' }}>© 2026 ClauseKit · Not legal advice</p>
+          <div className="flex items-center gap-4">
+            <a href="/terms" target="_blank" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#9CA3AF' }}>Terms</a>
+            <a href="/privacy" target="_blank" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#9CA3AF' }}>Privacy</a>
+            <a href="/refunds" target="_blank" className="text-xs hover:opacity-70 transition-opacity" style={{ color: '#9CA3AF' }}>Refunds</a>
+          </div>
+        </div>
       </div>
       </div>
     </div>
