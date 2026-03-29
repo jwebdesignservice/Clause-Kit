@@ -1019,7 +1019,10 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
         {/* Save as template */}
         <div className="flex-shrink-0 border-t px-4 pt-3 pb-0" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
           <button
-            onClick={() => onUpdate({ ...contract, isTemplate: !contract.isTemplate })}
+            onClick={() => {
+              const isNowTemplate = !contract.isTemplate
+              onUpdate({ ...contract, isTemplate: isNowTemplate })
+            }}
             className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold border transition-colors hover:bg-[#FAFAF8]"
             style={contract.isTemplate
               ? { borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: '#D8F3DC' }
@@ -1095,6 +1098,7 @@ export default function AppDashboard() {
   const [subLoading, setSubLoading] = useState(false)
   const [subscribeSuccess, setSubscribeSuccess] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
+  const [templateToast, setTemplateToast] = useState<'saved' | 'removed' | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -1409,6 +1413,35 @@ export default function AppDashboard() {
           </div>
         </div>
 
+        {/* Template saved toast */}
+        <AnimatePresence>
+          {templateToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -40 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-4 left-1/2 z-50 flex items-center gap-3 px-5 py-3 shadow-lg border"
+              style={{ transform: 'translateX(-50%)', backgroundColor: '#1B4332', borderColor: '#2D6A4F', color: '#FFFFFF', minWidth: 280 }}
+            >
+              <Bookmark className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} />
+              <div className="flex-1">
+                {templateToast === 'saved' ? (
+                  <>
+                    <p className="text-sm font-semibold">Template saved</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#D8F3DC' }}>Find it in the Templates tab under &ldquo;My saved templates&rdquo;</p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold">Template removed</p>
+                )}
+              </div>
+              <button onClick={() => setTemplateToast(null)} className="ml-2 hover:opacity-70" style={{ color: '#9CA3AF' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Subscription success banner */}
         {subscribeSuccess && (
           <div className="flex items-center justify-between px-4 py-2.5 text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#52B788', color: '#FFFFFF' }}>
@@ -1504,15 +1537,31 @@ export default function AppDashboard() {
                   ) : (
                     <div className="border" style={{ borderColor: '#E5E5E2' }}>
                       {savedContracts.slice(0, 5).map((c, i) => (
-                        <button key={c.id} onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className={cn('w-full flex items-center gap-4 px-4 py-3 hover:bg-[#FAFAF8] transition-colors text-left', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
-                          <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: '#1B4332' }}>{c.title}</p>
-                            <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName}</p>
-                          </div>
+                        <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
+                          <button onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className="flex items-center gap-4 flex-1 min-w-0 text-left">
+                            <FileText className="w-4 h-4 flex-shrink-0" style={{ color: '#9CA3AF' }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate" style={{ color: '#1B4332' }}>{c.title}</p>
+                              <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName}</p>
+                            </div>
+                          </button>
                           <StatusBadge status={c.status} />
                           <span className="text-xs flex-shrink-0 hidden sm:block" style={{ color: '#9CA3AF' }}>{fmtDate(c.createdAt)}</span>
-                        </button>
+                          <ContractRowMenu
+                            contract={c}
+                            onDelete={(id) => {
+                              const next = savedContracts.filter(s => s.id !== id)
+                              setSavedContracts(next); persistSaved(next)
+                            }}
+                            onSaveTemplate={(id) => {
+                              const isNowTemplate = !savedContracts.find(s => s.id === id)?.isTemplate
+                              const next = savedContracts.map(s => s.id === id ? { ...s, isTemplate: isNowTemplate } : s)
+                              setSavedContracts(next); persistSaved(next)
+                              setTemplateToast(isNowTemplate ? 'saved' : 'removed')
+                              setTimeout(() => setTemplateToast(null), 3500)
+                            }}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1683,9 +1732,12 @@ export default function AppDashboard() {
                   persistSaved(next)
                 }}
                 onSaveTemplate={(id) => {
-                  const next = savedContracts.map(c => c.id === id ? { ...c, isTemplate: !c.isTemplate } : c)
+                  const isNowTemplate = !savedContracts.find(c => c.id === id)?.isTemplate
+                  const next = savedContracts.map(c => c.id === id ? { ...c, isTemplate: isNowTemplate } : c)
                   setSavedContracts(next)
                   persistSaved(next)
+                  setTemplateToast(isNowTemplate ? 'saved' : 'removed')
+                  setTimeout(() => setTemplateToast(null), 3500)
                 }}
               />
             )}
@@ -2003,9 +2055,15 @@ export default function AppDashboard() {
                     onBack={() => { setActiveTab('my-contracts'); setViewingContractId(null) }}
                     onCheckout={initiateCheckout}
                     onUpdate={(updated) => {
+                      const prev = savedContracts.find(s => s.id === updated.id)
                       const next = savedContracts.map(s => s.id === updated.id ? updated : s)
                       setSavedContracts(next)
                       persistSaved(next)
+                      // Fire toast when template status changes
+                      if (prev && prev.isTemplate !== updated.isTemplate) {
+                        setTemplateToast(updated.isTemplate ? 'saved' : 'removed')
+                        setTimeout(() => setTemplateToast(null), 3500)
+                      }
                     }}
                   />
                 </motion.div>
