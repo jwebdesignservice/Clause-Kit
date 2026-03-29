@@ -720,6 +720,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   const [docBodyColor, setDocBodyColor] = useState('#374151')
   const [docHeadingColor, setDocHeadingColor] = useState('#1B4332')
   const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(400)
+  const [docHeadingWeight, setDocHeadingWeight] = useState<600 | 700 | 800>(700)
   const [docLogo, setDocLogo] = useState<string>(String(contract.intakeData?.yourLogo ?? ''))
   const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number } | null>(null)
 
@@ -854,7 +855,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                           suppressContentEditableWarning
                           onBlur={(e) => updateBlock(`${e.currentTarget.textContent ?? ''}\n${parsed.body}`)}
                           className="font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                          style={{ color: docHeadingColor, fontSize: docHeadingSize }}
+                          style={{ color: docHeadingColor, fontSize: docHeadingSize, fontWeight: docHeadingWeight }}
                         >
                           {parsed.heading}
                         </div>
@@ -958,64 +959,123 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                   </label>
                 )}
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Font Family</p>
-                <select value={docFont} onChange={(e) => setDocFont(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}>
-                  <option value="Inter, sans-serif">Inter (default)</option>
-                  <option value="Georgia, serif">Georgia</option>
-                  <option value="'Times New Roman', serif">Times New Roman</option>
-                  <option value="'Courier New', monospace">Courier New</option>
-                  <option value="Arial, sans-serif">Arial</option>
-                  <option value="system-ui, sans-serif">System UI</option>
-                </select>
+              {/* ── Logo ── */}
+              <div className="pb-5 border-b" style={{ borderColor: '#E5E5E2' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#9CA3AF' }}>Logo</p>
+                {docLogo ? (
+                  <div className="flex items-center justify-between p-3 border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                    <img src={docLogo} alt="Logo" className="h-8 object-contain" style={{ maxWidth: 120 }} />
+                    <button onClick={() => setDocLogo('')} className="text-xs font-semibold hover:opacity-70 ml-3 flex-shrink-0" style={{ color: '#EF4444' }}>Remove</button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed py-5 cursor-pointer hover:border-[#2D6A4F] transition-colors" style={{ borderColor: '#D1D5DB', backgroundColor: '#FAFAF8' }}>
+                    <input type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2MB'); return }; const reader = new FileReader(); reader.onload = (ev) => setDocLogo(ev.target?.result as string ?? ''); reader.readAsDataURL(file) }} />
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: '#9CA3AF' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    <span className="text-xs font-semibold" style={{ color: '#374151' }}>Click to upload logo</span>
+                    <span className="text-[10px]" style={{ color: '#9CA3AF' }}>PNG or JPG · max 2MB</span>
+                  </label>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Size</p>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setDocBodySize(s => Math.max(10, s - 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>-</button>
-                    <span className="text-sm font-medium flex-1 text-center" style={{ color: '#1B4332' }}>{docBodySize}px</span>
-                    <button onClick={() => setDocBodySize(s => Math.min(24, s + 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>+</button>
+
+              {/* ── Typography ── */}
+              <div className="py-5 border-b" style={{ borderColor: '#E5E5E2' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Typography</p>
+
+                {/* Font family */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Font family</p>
+                  <select value={docFont} onChange={(e) => setDocFont(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF', color: '#1A1A1A' }}>
+                    <option value="Inter, sans-serif">Inter (default)</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="system-ui, sans-serif">System UI</option>
+                  </select>
+                </div>
+
+                {/* Body size */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Body size</p>
+                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
+                    <button onClick={() => setDocBodySize(s => Math.max(10, s - 1))} className="px-3 flex items-center justify-center border-r text-base font-bold hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280', height: 36 }}>−</button>
+                    <span className="flex-1 flex items-center justify-center text-sm font-bold" style={{ color: '#1B4332', height: 36 }}>{docBodySize}px</span>
+                    <button onClick={() => setDocBodySize(s => Math.min(24, s + 1))} className="px-3 flex items-center justify-center border-l text-base font-bold hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280', height: 36 }}>+</button>
                   </div>
                 </div>
+
+                {/* Heading size */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Heading size</p>
+                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
+                    <button onClick={() => setDocHeadingSize(s => Math.max(12, s - 1))} className="px-3 flex items-center justify-center border-r text-base font-bold hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280', height: 36 }}>−</button>
+                    <span className="flex-1 flex items-center justify-center text-sm font-bold" style={{ color: '#1B4332', height: 36 }}>{docHeadingSize}px</span>
+                    <button onClick={() => setDocHeadingSize(s => Math.min(32, s + 1))} className="px-3 flex items-center justify-center border-l text-base font-bold hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280', height: 36 }}>+</button>
+                  </div>
+                </div>
+
+                {/* Body weight */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold mb-2" style={{ color: '#374151' }}>Body weight</p>
+                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
+                    {([400, 500, 600] as const).map((w, wi) => (
+                      <button key={w} onClick={() => setDocFontWeight(w)} className={`flex-1 py-2 text-xs font-medium transition-colors${wi !== 2 ? ' border-r' : ''}`} style={docFontWeight === w ? { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#E5E5E2' } : { backgroundColor: '#FFFFFF', color: '#6B7280', borderColor: '#E5E5E2' }}>
+                        {w === 400 ? 'Regular' : w === 500 ? 'Medium' : 'Semibold'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Heading weight */}
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Heading Size</p>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setDocHeadingSize(s => Math.max(12, s - 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>-</button>
-                    <span className="text-sm font-medium flex-1 text-center" style={{ color: '#1B4332' }}>{docHeadingSize}px</span>
-                    <button onClick={() => setDocHeadingSize(s => Math.min(32, s + 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>+</button>
+                  <p className="text-xs font-semibold mb-2" style={{ color: '#374151' }}>Heading weight</p>
+                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
+                    {([600, 700, 800] as const).map((w, wi) => (
+                      <button key={w} onClick={() => setDocHeadingWeight(w)} className={`flex-1 py-2 text-xs font-medium transition-colors${wi !== 2 ? ' border-r' : ''}`} style={docHeadingWeight === w ? { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#E5E5E2' } : { backgroundColor: '#FFFFFF', color: '#6B7280', borderColor: '#E5E5E2' }}>
+                        {w === 600 ? 'Semi' : w === 700 ? 'Bold' : 'Black'}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Weight</p>
-                <div className="flex gap-2">
-                  {([400, 500, 600] as const).map(w => (
-                    <button key={w} onClick={() => setDocFontWeight(w)} className="flex-1 py-1.5 text-xs font-medium border transition-colors" style={docFontWeight === w ? { backgroundColor: '#D8F3DC', borderColor: '#2D6A4F', color: '#1B4332' } : { borderColor: '#E5E5E2', color: '#6B7280' }}>
-                      {w === 400 ? 'Regular' : w === 500 ? 'Medium' : 'Semibold'}
-                    </button>
-                  ))}
+
+              {/* ── Colours ── */}
+              <div className="py-5 border-b" style={{ borderColor: '#E5E5E2' }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Colours</p>
+                <div className="space-y-2">
+                  <label className="flex items-center justify-between px-3 py-2.5 border cursor-pointer hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2' }}>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#374151' }}>Body text</p>
+                      <p className="text-[10px] font-mono mt-0.5" style={{ color: '#9CA3AF' }}>{docBodyColor}</p>
+                    </div>
+                    <div className="relative flex-shrink-0">
+                      <div className="w-8 h-8 border" style={{ backgroundColor: docBodyColor, borderColor: '#D1D5DB' }} />
+                      <input type="color" value={docBodyColor} onChange={(e) => setDocBodyColor(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+                    </div>
+                  </label>
+                  <label className="flex items-center justify-between px-3 py-2.5 border cursor-pointer hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2' }}>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#374151' }}>Headings</p>
+                      <p className="text-[10px] font-mono mt-0.5" style={{ color: '#9CA3AF' }}>{docHeadingColor}</p>
+                    </div>
+                    <div className="relative flex-shrink-0">
+                      <div className="w-8 h-8 border" style={{ backgroundColor: docHeadingColor, borderColor: '#D1D5DB' }} />
+                      <input type="color" value={docHeadingColor} onChange={(e) => setDocHeadingColor(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+                    </div>
+                  </label>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Colour</p>
-                  <div className="flex items-center gap-2">
-                    <input type="color" value={docBodyColor} onChange={(e) => setDocBodyColor(e.target.value)} className="w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', padding: 2 }} />
-                    <span className="text-xs font-mono" style={{ color: '#6B7280' }}>{docBodyColor}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Heading Colour</p>
-                  <div className="flex items-center gap-2">
-                    <input type="color" value={docHeadingColor} onChange={(e) => setDocHeadingColor(e.target.value)} className="w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', padding: 2 }} />
-                    <span className="text-xs font-mono" style={{ color: '#6B7280' }}>{docHeadingColor}</span>
-                  </div>
-                </div>
+
+              {/* ── Reset ── */}
+              <div className="pt-4">
+                <button
+                  onClick={() => { setDocFont('Inter, sans-serif'); setDocBodySize(14); setDocHeadingSize(18); setDocBodyColor('#374151'); setDocHeadingColor('#1B4332'); setDocFontWeight(400); setDocHeadingWeight(700) }}
+                  className="w-full py-2.5 text-xs font-semibold border hover:bg-[#FAFAF8] transition-colors"
+                  style={{ borderColor: '#E5E5E2', color: '#6B7280' }}
+                >
+                  Reset to defaults
+                </button>
               </div>
-              <button onClick={() => { setDocFont('Inter, sans-serif'); setDocBodySize(14); setDocHeadingSize(18); setDocBodyColor('#374151'); setDocHeadingColor('#1B4332'); setDocFontWeight(400) }} className="w-full py-2 text-xs font-medium border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
-                Reset to defaults
-              </button>
             </div>
           )}
         </div>
