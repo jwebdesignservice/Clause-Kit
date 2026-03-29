@@ -820,6 +820,10 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
           )}
 
           {/* Party info cards — at top of document */}
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>Edit party details in the <button onClick={() => setSideTab('parties')} className="font-semibold underline hover:opacity-70" style={{ color: '#2D6A4F' }}>Parties tab →</button></p>
+          </div>
           <DocumentPartyHeader contract={contract} intake={intake} />
 
           {/* Document body — parsed sections */}
@@ -898,7 +902,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
       <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
-          {(['parties', 'details', 'styling'] as const).map((t) => (
+          {(['parties', 'styling', 'details'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSideTab(t)}
