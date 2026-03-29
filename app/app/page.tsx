@@ -609,18 +609,57 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
   )
 }
 
+
+// ── Floating selection toolbar ───────────────────────────────────────────────
+
+function SelectionToolbar({ position, onClose }: { position: { x: number; y: number }; onClose: () => void }) {
+  const execCmd = (cmd: string, value?: string) => {
+    document.execCommand(cmd, false, value ?? undefined)
+    onClose()
+  }
+  return (
+    <div
+      className="fixed z-50 flex items-center gap-0.5 px-2 py-1.5 shadow-lg border"
+      style={{ left: position.x, top: position.y - 48, backgroundColor: '#1B4332', borderColor: '#2D6A4F', transform: 'translateX(-50%)' }}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <button onClick={() => execCmd("bold")} className="px-2 py-1 text-xs font-bold text-white hover:bg-[#2D6A4F] transition-colors" title="Bold">B</button>
+      <button onClick={() => execCmd("italic")} className="px-2 py-1 text-xs italic text-white hover:bg-[#2D6A4F] transition-colors" title="Italic">I</button>
+      <button onClick={() => execCmd("underline")} className="px-2 py-1 text-xs underline text-white hover:bg-[#2D6A4F] transition-colors" title="Underline">U</button>
+      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
+      <button onClick={() => execCmd("fontSize", "2")} className="px-1.5 py-1 text-white hover:bg-[#2D6A4F] transition-colors" title="Smaller" style={{ fontSize: 10 }}>A-</button>
+      <button onClick={() => execCmd("fontSize", "4")} className="px-1.5 py-1 text-white hover:bg-[#2D6A4F] transition-colors" title="Larger" style={{ fontSize: 14 }}>A+</button>
+      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
+      <label className="flex items-center gap-1 cursor-pointer px-1" title="Text colour">
+        <span className="text-xs text-white font-medium">A</span>
+        <input type="color" defaultValue="#374151" className="w-4 h-4 cursor-pointer" style={{ border: "none", padding: 0, background: "transparent" }} onChange={(e) => execCmd("foreColor", e.target.value)} />
+      </label>
+      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
+      <button onClick={() => { document.execCommand("removeFormat"); onClose() }} className="px-2 py-1 text-xs text-white hover:bg-[#2D6A4F] transition-colors" title="Clear">✕</button>
+    </div>
+  )
+}
+
 function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   contract: SavedContract
   onBack: () => void
   onCheckout: (id: string) => void
   onUpdate: (updated: SavedContract) => void
 }) {
-  const [sideTab, setSideTab] = useState<'parties' | 'details' | 'terms'>('parties')
+  const [sideTab, setSideTab] = useState<'parties' | 'details' | 'styling'>('parties')
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
   const [editableTitle, setEditableTitle] = useState(contract.title)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [sigState, setSigState] = useState<SignatureState>({ sig1Empty: true, name1: '', date1: '' })
   const [sigError, setSigError] = useState<string | null>(null)
+  const [docFont, setDocFont] = useState('Inter, sans-serif')
+  const [docBodySize, setDocBodySize] = useState(14)
+  const [docHeadingSize, setDocHeadingSize] = useState(18)
+  const [docBodyColor, setDocBodyColor] = useState('#374151')
+  const [docHeadingColor, setDocHeadingColor] = useState('#1B4332')
+  const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(400)
+  const [docLogo, setDocLogo] = useState<string>(String(contract.intakeData?.yourLogo ?? ''))
+  const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number } | null>(null)
 
   const senderReady = !sigState.sig1Empty && !!sigState.name1.trim() && !!sigState.date1
 
@@ -659,6 +698,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
     confidentialityDuration: 'Confidentiality',
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const keyTerms = Object.entries(KEY_TERM_LABELS)
     .filter(([k]) => intake[k] && String(intake[k]).trim())
     .map(([k, label]) => ({ label, value: String(intake[k]) }))
@@ -687,7 +727,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Left: Editable Document ── */}
-      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF' }}>
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont, fontWeight: docFontWeight }}>
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
@@ -710,11 +750,27 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
             </p>
           </div>
 
+          {/* Logo */}
+          {docLogo && (
+            <div className="mb-6">
+              <img src={docLogo} alt="Logo" className="object-contain" style={{ maxHeight: 60, maxWidth: 200 }} />
+            </div>
+          )}
+
           {/* Party info cards — at top of document */}
           <DocumentPartyHeader contract={contract} intake={intake} />
 
           {/* Document body — parsed sections */}
-          <div>
+          <div onMouseUp={() => {
+            const sel = window.getSelection()
+            if (sel && sel.toString().length > 0 && sel.rangeCount > 0) {
+              const r = sel.getRangeAt(0).getBoundingClientRect()
+              setSelectionToolbar({ x: r.left + r.width / 2, y: r.top + window.scrollY })
+            } else { setSelectionToolbar(null) }
+          }}>
+            {selectionToolbar && (
+              <SelectionToolbar position={selectionToolbar} onClose={() => setSelectionToolbar(null)} />
+            )}
             {blocks.map((block, i) => {
               const parsed = parseBlock(block)
               const updateBlock = (text: string) => {
@@ -731,8 +787,8 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={(e) => updateBlock(`${e.currentTarget.textContent ?? ''}\n${parsed.body}`)}
-                          className="text-sm font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
-                          style={{ color: '#1B4332' }}
+                          className="font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                          style={{ color: docHeadingColor, fontSize: docHeadingSize }}
                         >
                           {parsed.heading}
                         </div>
@@ -780,7 +836,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
       <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
-          {(['parties', 'details', 'terms'] as const).map((t) => (
+          {(['parties', 'details', 'styling'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSideTab(t)}
@@ -790,7 +846,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                 : { backgroundColor: 'transparent', color: '#9CA3AF', borderBottom: '2px solid transparent' }
               }
             >
-              {t === 'parties' ? 'Parties' : t === 'details' ? 'Details' : 'Key Terms'}
+              {t === 'parties' ? 'Parties' : t === 'details' ? 'Details' : 'Styling'}
             </button>
           ))}
         </div>
@@ -819,15 +875,82 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
             </>
           )}
 
-          {sideTab === 'terms' && (
-            keyTerms.length > 0 ? keyTerms.map(t => (
-              <div key={t.label} className="mb-3">
-                <p className="text-xs font-medium mb-0.5" style={{ color: '#9CA3AF' }}>{t.label}</p>
-                <p className="text-sm" style={{ color: '#1B4332' }}>{t.value}</p>
+          {sideTab === 'styling' && (
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Logo</p>
+                {docLogo ? (
+                  <div className="flex items-center gap-3 p-3 border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                    <img src={docLogo} alt="Logo" className="h-8 object-contain" style={{ maxWidth: 100 }} />
+                    <button onClick={() => setDocLogo('')} className="text-xs font-medium hover:opacity-70" style={{ color: '#EF4444' }}>Remove</button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed py-4 cursor-pointer hover:border-[#2D6A4F] transition-colors" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                    <input type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2MB'); return }; const reader = new FileReader(); reader.onload = (ev) => setDocLogo(ev.target?.result as string ?? ''); reader.readAsDataURL(file) }} />
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    <span className="text-sm" style={{ color: '#6B7280' }}>Upload logo</span>
+                  </label>
+                )}
               </div>
-            )) : (
-              <p className="text-xs italic" style={{ color: '#9CA3AF' }}>No key terms available for this contract type.</p>
-            )
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Font Family</p>
+                <select value={docFont} onChange={(e) => setDocFont(e.target.value)} className="w-full border px-3 py-2 text-sm focus:outline-none" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}>
+                  <option value="Inter, sans-serif">Inter (default)</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'Times New Roman', serif">Times New Roman</option>
+                  <option value="'Courier New', monospace">Courier New</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="system-ui, sans-serif">System UI</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Size</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setDocBodySize(s => Math.max(10, s - 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>-</button>
+                    <span className="text-sm font-medium flex-1 text-center" style={{ color: '#1B4332' }}>{docBodySize}px</span>
+                    <button onClick={() => setDocBodySize(s => Math.min(24, s + 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>+</button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Heading Size</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setDocHeadingSize(s => Math.max(12, s - 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>-</button>
+                    <span className="text-sm font-medium flex-1 text-center" style={{ color: '#1B4332' }}>{docHeadingSize}px</span>
+                    <button onClick={() => setDocHeadingSize(s => Math.min(32, s + 1))} className="w-7 h-7 flex items-center justify-center border text-sm hover:bg-[#FAFAF8]" style={{ borderColor: '#E5E5E2' }}>+</button>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Weight</p>
+                <div className="flex gap-2">
+                  {([400, 500, 600] as const).map(w => (
+                    <button key={w} onClick={() => setDocFontWeight(w)} className="flex-1 py-1.5 text-xs font-medium border transition-colors" style={docFontWeight === w ? { backgroundColor: '#D8F3DC', borderColor: '#2D6A4F', color: '#1B4332' } : { borderColor: '#E5E5E2', color: '#6B7280' }}>
+                      {w === 400 ? 'Regular' : w === 500 ? 'Medium' : 'Semibold'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Body Colour</p>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={docBodyColor} onChange={(e) => setDocBodyColor(e.target.value)} className="w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', padding: 2 }} />
+                    <span className="text-xs font-mono" style={{ color: '#6B7280' }}>{docBodyColor}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Heading Colour</p>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={docHeadingColor} onChange={(e) => setDocHeadingColor(e.target.value)} className="w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', padding: 2 }} />
+                    <span className="text-xs font-mono" style={{ color: '#6B7280' }}>{docHeadingColor}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => { setDocFont('Inter, sans-serif'); setDocBodySize(14); setDocHeadingSize(18); setDocBodyColor('#374151'); setDocHeadingColor('#1B4332'); setDocFontWeight(400) }} className="w-full py-2 text-xs font-medium border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
+                Reset to defaults
+              </button>
+            </div>
           )}
         </div>
 
@@ -893,12 +1016,53 @@ export default function AppDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [subLoading, setSubLoading] = useState(false)
+  const [subscribeSuccess, setSubscribeSuccess] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [viewingContractId, setViewingContractId] = useState<string | null>(null)
 
   useEffect(() => { setSavedContracts(loadSaved()) }, [])
+
+  // Check subscription status
+  useEffect(() => {
+    fetch('/api/subscription/status')
+      .then(r => r.json())
+      .then(d => { if (d.active) setIsSubscribed(true) })
+      .catch(() => {})
+  }, [])
+
+  // Check for subscribed=true param after Stripe redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('subscribed') === 'true') {
+        setSubscribeSuccess(true)
+        setIsSubscribed(true)
+        window.history.replaceState({}, '', '/app')
+        setTimeout(() => setSubscribeSuccess(false), 8000)
+      }
+    }
+  }, [])
+
+  const handleSubscribe = async () => {
+    setSubLoading(true)
+    try {
+      const res = await fetch('/api/checkout/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session?.user?.email ?? undefined }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      // silent fail — keep button available
+    } finally {
+      setSubLoading(false)
+    }
+  }
 
   // Loading message cycle
   useEffect(() => {
@@ -952,7 +1116,7 @@ export default function AppDashboard() {
         title: data.title ?? selectedType.title,
         typeId: selectedType.id,
         typeName: selectedType.title,
-        party1: (intake.yourName as string) ?? '',
+        party1: ((intake.yourFullName ?? intake.yourName) as string) ?? '',
         party2: (intake.theirName as string) ?? '',
         party1Email: (intake.yourEmail as string) ?? '',
         party2Email: (intake.theirEmail as string) ?? '',
@@ -1070,18 +1234,29 @@ export default function AppDashboard() {
           })}
         </nav>
 
-        {/* Upgrade nudge */}
-        <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
-          <p className="text-xs font-semibold mb-0.5" style={{ color: '#1B4332' }}>Unlimited access</p>
-          <p className="text-xs mb-2" style={{ color: '#52B788' }}>&pound;19/mo &mdash; all types, unlimited</p>
-          <button
-            onClick={() => navigate('pricing')}
-            className="w-full py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#2D6A4F' }}
-          >
-            Upgrade
-          </button>
-        </div>
+        {/* Upgrade nudge / Pro badge */}
+        {isSubscribed ? (
+          <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: '#52B788', borderRadius: '50%' }} />
+              <p className="text-xs font-bold" style={{ color: '#1B4332' }}>Pro plan active</p>
+            </div>
+            <p className="text-xs mt-1" style={{ color: '#52B788' }}>Up to 20 contracts/day</p>
+          </div>
+        ) : (
+          <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: '#1B4332' }}>Pro plan</p>
+            <p className="text-xs mb-2" style={{ color: '#52B788' }}>&pound;19/mo &mdash; up to 20/day</p>
+            <button
+              onClick={handleSubscribe}
+              disabled={subLoading}
+              className="w-full py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-1"
+              style={{ backgroundColor: '#2D6A4F' }}
+            >
+              {subLoading ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : 'Upgrade'}
+            </button>
+          </div>
+        )}
 
         {/* Account section */}
         <div className="border-t flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
@@ -1157,6 +1332,14 @@ export default function AppDashboard() {
             )}
           </div>
         </div>
+
+        {/* Subscription success banner */}
+        {subscribeSuccess && (
+          <div className="flex items-center justify-between px-4 py-2.5 text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#52B788', color: '#FFFFFF' }}>
+            <span>✓ Subscription active — you can now generate up to 20 contracts per day.</span>
+            <button onClick={() => setSubscribeSuccess(false)} className="ml-4 text-white hover:opacity-70 text-xs font-bold">✕</button>
+          </div>
+        )}
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto bg-white">
@@ -1509,17 +1692,22 @@ export default function AppDashboard() {
                       <span className="font-display text-5xl font-bold">&pound;19</span>
                       <span className="text-sm" style={{ color: '#D8F3DC' }}>/month</span>
                     </div>
-                    <p className="text-sm mb-6" style={{ color: '#D8F3DC' }}>Unlimited contracts for busy freelancers and teams.</p>
+                    <p className="text-sm mb-6" style={{ color: '#D8F3DC' }}>Generate up to 20 contracts per day — perfect for busy freelancers.</p>
                     <ul className="space-y-2.5 mb-7">
-                      {['All 8 contract types', 'Unlimited downloads', 'PDF + Word', 'Cancel any time'].map((f) => (
+                      {['All 8 contract types', 'Up to 20 contracts/day', 'PDF + Word', 'Cancel any time'].map((f) => (
                         <li key={f} className="flex items-center gap-2.5 text-sm">
                           <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} strokeWidth={3} />
                           <span>{f}</span>
                         </li>
                       ))}
                     </ul>
-                    <button className="w-full py-2.5 text-sm font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}>
-                      Get unlimited access
+                    <button
+                      onClick={handleSubscribe}
+                      disabled={subLoading}
+                      className="w-full py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+                      style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}
+                    >
+                      {subLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : 'Get Pro access'}
                     </button>
                   </div>
                 </div>

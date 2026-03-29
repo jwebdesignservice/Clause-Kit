@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
   try {
-    const { contractId, email } = await req.json();
-
-    if (!contractId) {
-      return NextResponse.json({ error: 'contractId is required' }, { status: 400 });
-    }
+    const body = await req.json().catch(() => ({}))
+    const { email } = body
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    // Build line item — use configured Price ID if available, else price_data
     const subscriptionPriceId = process.env.STRIPE_PRICE_ID_SUBSCRIPTION;
 
     const lineItem = subscriptionPriceId
@@ -20,22 +16,20 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: 'gbp',
             product_data: {
-              name: 'ClauseKit Unlimited',
-              description: 'Unlimited UK contract generation — £19/month',
+              name: 'ClauseKit Pro',
+              description: 'Up to 20 contracts per day — £19/month',
             },
-            unit_amount: 1900, // £19.00
+            unit_amount: 1900,
             recurring: { interval: 'month' as const },
           },
           quantity: 1,
         };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sessionParams: any = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       line_items: [lineItem],
       mode: 'subscription',
-      success_url: `${appUrl}/download/{CHECKOUT_SESSION_ID}?contractId=${contractId}&mode=subscription`,
-      cancel_url: `${appUrl}/preview/${contractId}`,
-      metadata: { contractId },
+      success_url: `${appUrl}/app?subscribed=true`,
+      cancel_url: `${appUrl}/app`,
     };
 
     if (email) {

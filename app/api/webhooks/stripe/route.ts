@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
-import { markPaid, setPaymentStatus, setSubscriptionStatus } from '@/lib/payment-store';
+import { markPaid, setPaymentStatus } from '@/lib/payment-store';
+import { setSubscription } from '@/lib/subscription-store';
+
+async function getEmailFromCustomer(customerId: string): Promise<string | null> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId)
+    if (customer.deleted) return null
+    return (customer as Stripe.Customer).email ?? null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -25,18 +36,23 @@ export async function POST(req: NextRequest) {
   }
 
   switch (event.type) {
+
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const contractId = session.metadata?.contractId;
 
       if (session.mode === 'subscription') {
-        // Subscription checkout — mark customer as subscribed
-        if (session.customer && session.subscription) {
-          setSubscriptionStatus(
-            session.customer as string,
-            session.subscription as string,
-            'active'
-          );
+        // Subscription — record against user email
+        const customerId = session.customer as string
+        const email = session.customer_email ?? await getEmailFromCustomer(customerId)
+        if (email) {
+          setSubscription({
+            userId: email,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: session.subscription as string,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          })
         }
       } else if (contractId) {
         // One-time payment
@@ -55,25 +71,39 @@ export async function POST(req: NextRequest) {
       break;
     }
 
-    case 'customer.subscription.created':
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription;
-      setSubscriptionStatus(
-        sub.customer as string,
-        sub.id,
-        sub.status === 'active' ? 'active' : 'inactive'
-      );
+      const email = await getEmailFromCustomer(sub.customer as string)
+      if (email) {
+        setSubscription({
+          userId: email,
+          stripeCustomerId: sub.customer as string,
+          stripeSubscriptionId: sub.id,
+          status: sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : 'cancelled',
+          currentPeriodEnd: new Date((sub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+          createdAt: new Date().toISOString(),
+        })
+      }
       break;
     }
 
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
-      setSubscriptionStatus(sub.customer as string, sub.id, 'inactive');
+      const email = await getEmailFromCustomer(sub.customer as string)
+      if (email) {
+        setSubscription({
+          userId: email,
+          stripeCustomerId: sub.customer as string,
+          stripeSubscriptionId: sub.id,
+          status: 'cancelled',
+          createdAt: new Date().toISOString(),
+        })
+      }
       break;
     }
 
     default:
-      console.log(`Unhandled Stripe event: ${event.type}`);
+      break;
   }
 
   return NextResponse.json({ received: true });
