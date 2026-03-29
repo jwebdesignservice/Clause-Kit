@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySigningToken } from '@/lib/signing'
-import { getContract, updateContract } from '@/lib/contract-store'
+import { getContractAsync, updateContractAsync } from '@/lib/contract-store'
 import { sendContractComplete, sendClientSignedCopy } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
@@ -16,18 +16,18 @@ export async function POST(req: NextRequest) {
   if (!payload || payload.contractId !== contractId || payload.role !== role)
     return NextResponse.json({ error: 'Invalid or expired signing link' }, { status: 401 })
 
-  const contract = getContract(contractId)
+  const contract = await getContractAsync(contractId)
   if (!contract) return NextResponse.json({ error: 'Contract not found' }, { status: 404 })
 
   const sig = { dataUrl: signatureDataUrl, printedName, signedAt: new Date().toISOString(), ipAddress: ip }
 
   if (role === 'party1') {
-    updateContract(contractId, { party1Signature: sig, status: 'sent' })
+    await updateContractAsync(contractId, { party1Signature: sig, status: 'sent' })
     return NextResponse.json({ success: true, status: 'sent', message: `Contract sent to ${contract.party2?.email ?? 'client'} for signature` })
   }
 
   if (role === 'party2') {
-    updateContract(contractId, { party2Signature: sig, status: 'completed' })
+    await updateContractAsync(contractId, { party2Signature: sig, status: 'completed' })
     try {
       if (contract.party1?.email) {
         await sendContractComplete({ to: contract.party1.email, userName: contract.party1.name, clientName: contract.party2?.name ?? 'your client', contractTitle: contract.title, contractId })
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   const payload = verifySigningToken(token)
   if (!payload || payload.contractId !== contractId) return NextResponse.json({ error: 'Invalid or expired link' }, { status: 401 })
 
-  const contract = getContract(contractId)
+  const contract = await getContractAsync(contractId)
   if (!contract) return NextResponse.json({ error: 'Contract not found' }, { status: 404 })
 
   return NextResponse.json({
