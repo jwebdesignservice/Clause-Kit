@@ -1016,12 +1016,53 @@ export default function AppDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [subLoading, setSubLoading] = useState(false)
+  const [subscribeSuccess, setSubscribeSuccess] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [viewingContractId, setViewingContractId] = useState<string | null>(null)
 
   useEffect(() => { setSavedContracts(loadSaved()) }, [])
+
+  // Check subscription status
+  useEffect(() => {
+    fetch('/api/subscription/status')
+      .then(r => r.json())
+      .then(d => { if (d.active) setIsSubscribed(true) })
+      .catch(() => {})
+  }, [])
+
+  // Check for subscribed=true param after Stripe redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('subscribed') === 'true') {
+        setSubscribeSuccess(true)
+        setIsSubscribed(true)
+        window.history.replaceState({}, '', '/app')
+        setTimeout(() => setSubscribeSuccess(false), 8000)
+      }
+    }
+  }, [])
+
+  const handleSubscribe = async () => {
+    setSubLoading(true)
+    try {
+      const res = await fetch('/api/checkout/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session?.user?.email ?? undefined }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      // silent fail — keep button available
+    } finally {
+      setSubLoading(false)
+    }
+  }
 
   // Loading message cycle
   useEffect(() => {
@@ -1193,18 +1234,29 @@ export default function AppDashboard() {
           })}
         </nav>
 
-        {/* Upgrade nudge */}
-        <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
-          <p className="text-xs font-semibold mb-0.5" style={{ color: '#1B4332' }}>Unlimited access</p>
-          <p className="text-xs mb-2" style={{ color: '#52B788' }}>&pound;19/mo &mdash; all types, unlimited</p>
-          <button
-            onClick={() => navigate('pricing')}
-            className="w-full py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#2D6A4F' }}
-          >
-            Upgrade
-          </button>
-        </div>
+        {/* Upgrade nudge / Pro badge */}
+        {isSubscribed ? (
+          <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: '#52B788', borderRadius: '50%' }} />
+              <p className="text-xs font-bold" style={{ color: '#1B4332' }}>Pro plan active</p>
+            </div>
+            <p className="text-xs mt-1" style={{ color: '#52B788' }}>Up to 20 contracts/day</p>
+          </div>
+        ) : (
+          <div className="mx-3 mb-3 p-3 border" style={{ backgroundColor: '#EDFAF2', borderColor: '#52B78840' }}>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: '#1B4332' }}>Pro plan</p>
+            <p className="text-xs mb-2" style={{ color: '#52B788' }}>&pound;19/mo &mdash; up to 20/day</p>
+            <button
+              onClick={handleSubscribe}
+              disabled={subLoading}
+              className="w-full py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-1"
+              style={{ backgroundColor: '#2D6A4F' }}
+            >
+              {subLoading ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : 'Upgrade'}
+            </button>
+          </div>
+        )}
 
         {/* Account section */}
         <div className="border-t flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
@@ -1280,6 +1332,14 @@ export default function AppDashboard() {
             )}
           </div>
         </div>
+
+        {/* Subscription success banner */}
+        {subscribeSuccess && (
+          <div className="flex items-center justify-between px-4 py-2.5 text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#52B788', color: '#FFFFFF' }}>
+            <span>✓ Subscription active — you can now generate up to 20 contracts per day.</span>
+            <button onClick={() => setSubscribeSuccess(false)} className="ml-4 text-white hover:opacity-70 text-xs font-bold">✕</button>
+          </div>
+        )}
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto bg-white">
@@ -1632,17 +1692,22 @@ export default function AppDashboard() {
                       <span className="font-display text-5xl font-bold">&pound;19</span>
                       <span className="text-sm" style={{ color: '#D8F3DC' }}>/month</span>
                     </div>
-                    <p className="text-sm mb-6" style={{ color: '#D8F3DC' }}>Unlimited contracts for busy freelancers and teams.</p>
+                    <p className="text-sm mb-6" style={{ color: '#D8F3DC' }}>Generate up to 20 contracts per day — perfect for busy freelancers.</p>
                     <ul className="space-y-2.5 mb-7">
-                      {['All 8 contract types', 'Unlimited downloads', 'PDF + Word', 'Cancel any time'].map((f) => (
+                      {['All 8 contract types', 'Up to 20 contracts/day', 'PDF + Word', 'Cancel any time'].map((f) => (
                         <li key={f} className="flex items-center gap-2.5 text-sm">
                           <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} strokeWidth={3} />
                           <span>{f}</span>
                         </li>
                       ))}
                     </ul>
-                    <button className="w-full py-2.5 text-sm font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}>
-                      Get unlimited access
+                    <button
+                      onClick={handleSubscribe}
+                      disabled={subLoading}
+                      className="w-full py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+                      style={{ backgroundColor: '#FFFFFF', color: '#1B4332' }}
+                    >
+                      {subLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : 'Get Pro access'}
                     </button>
                   </div>
                 </div>

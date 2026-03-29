@@ -1,0 +1,99 @@
+You are the ClauseKit nightly audit agent. Work in C:\Users\Jack\Desktop\AI Website\htdocs\Websites\clausekit.
+
+Your job tonight: full codebase audit. Find every bug, type error, lint issue, and security problem. Fix everything safe to fix. Commit to a nightly branch.
+
+BRANCH: Create nightly/2026-03-28 from main.
+  git checkout main
+  git pull origin main
+  git checkout -b nightly/2026-03-28
+
+AUDIT TASKS:
+
+1. TYPESCRIPT / LINT
+   - Run: npx tsc --noEmit — fix every type error
+   - Run: npm run build — fix every ESLint error
+   - Look for: unused imports, any types, missing return types on async functions
+
+2. FRONTEND — app/page.tsx (Homepage)
+   - Check for encoding artifacts in text (garbled characters like mojibake)
+   - Verify Framer Motion animations compile without type errors
+   - Check all Lucide icons are imported correctly
+   - Verify all href links point to valid routes (/app, /create, #pricing, #faq, etc.)
+   - Check the comparison table renders correctly
+   - Ensure mobile responsiveness (overflow issues, missing responsive classes)
+   - Verify the WhatsApp floating button is present and links correctly
+
+3. FRONTEND — app/app/page.tsx (Dashboard)
+   - Verify all 8 contract types are defined
+   - Check sidebar tabs all render and switch correctly
+   - Verify multi-step form flow (step 1 to 2 to 3 to 4) has no null reference issues
+   - Check localStorage read/write does not throw on SSR
+   - Verify the loading messages array is correct
+   - Check contract generation API call has proper error handling
+
+4. API ROUTES — app/api/
+   - generate/route.ts: verify OpenAI client import, missing await, response format
+   - checkout/route.ts: verify Stripe import is lazy (no module-level throw), check request body parsing
+   - payment/webhook/route.ts: verify webhook signature checking structure
+   - webhooks/stripe/route.ts: check for duplicate webhook handler logic
+   - download/pdf/route.ts: verify pdf-lib import works, check for memory issues
+
+5. LIBRARY IMPORTS
+   - lib/stripe.ts: lazy init (no module-level Stripe instantiation)
+   - lib/openai.ts: imports cleanly
+   - lib/contract-types.ts: exports match what components expect
+   - lib/utils.ts: exports cn() correctly
+   - lib/contract-store.ts and lib/payment-store.ts: any issues
+
+6. DEPENDENCY CHECK
+   - Run: npm ls — check peer dependency warnings
+   - Verify package.json has: framer-motion, pdf-lib, openai, stripe, lucide-react, clsx, tailwind-merge
+
+7. ENVIRONMENT VARIABLES
+   - Check .env.local.example has all required vars:
+     OPENAI_API_KEY, STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_URL
+
+8. SECURITY
+   - API routes must not leak env vars in responses
+   - Stripe webhook must verify signature before processing
+   - No hardcoded API keys anywhere in the codebase
+
+ITERATION LOOP:
+1. Make changes
+2. npm run build
+3. Pass -> commit to nightly/2026-03-28
+4. Fail -> git checkout . -> try a different approach
+5. Max 5 iterations
+6. NEVER commit broken code
+
+HARD RULES:
+- NEVER commit to main
+- NEVER deploy to production
+- If a fix might break something else, document it instead of applying it
+- Do NOT execute HOMEPAGE-BRIEF.md
+
+AFTER AUDIT:
+1. Fix everything safe to fix
+2. npm run build must pass
+3. git add -A
+4. git commit -m "audit: nightly/2026-03-28 — [description of all fixes]"
+5. git push origin nightly/2026-03-28
+
+FINAL OUTPUT FORMAT — output this exact structure when done:
+
+=== NIGHTLY AUDIT REPORT 2026-03-28 ===
+
+ISSUES FOUND:
+[list every issue found, numbered]
+
+FIXES APPLIED:
+[list every fix applied, numbered]
+
+NEEDS OPERATOR ATTENTION:
+[list anything that needs human decision]
+
+BUILD STATUS: [PASS/FAIL]
+
+BRANCH: nightly/2026-03-28
+PUSHED: [YES/NO]
+============================

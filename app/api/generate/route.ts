@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { saveContract } from "@/lib/contract-store";
+import { saveContractAsync } from "@/lib/contract-store";
 import { ContractType } from "@/types";
 import { randomUUID } from "crypto";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { hasActiveSubscription, getDailyUsage, incrementDailyUsage } from "@/lib/subscription-store";
+
+const DAILY_LIMIT = 20;
 
 // ── Rate limiter ───────────────────────────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -454,6 +459,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 })
   }
 
+  // ── Subscription daily limit check ───────────────────────────────────────
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.email ?? null
+  if (userId && hasActiveSubscription(userId)) {
+    if (getDailyUsage(userId) >= DAILY_LIMIT) {
+      return NextResponse.json({ error: 'Daily limit reached. You can generate up to 20 contracts per day on your plan.' }, { status: 429 })
+    }
+    incrementDailyUsage(userId)
+  }
+
   let body: { contractType: ContractType; fields?: Record<string, string | string[]>; customDescription?: string }
   try {
     body = await req.json()
@@ -510,7 +525,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    saveContract({ id: contractId, contractType, title, content: contractContent, createdAt, party1, party2, status: 'draft' })
+    await saveContractAsync({ id: contractId, contractType, title, content: contractContent, createdAt, party1, party2, status: 'draft' })
   } catch (err) {
     console.error('Failed to save contract to store:', err)
   }
