@@ -1755,6 +1755,10 @@ export default function AppDashboard() {
                   <div className="mb-6">
                     <h2 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>My saved templates</h2>
                     <div className="border" style={{ borderColor: '#E5E5E2' }}>
+                      <div className="flex items-center gap-4 px-4 py-2 border-b text-[10px] font-bold uppercase tracking-widest" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#9CA3AF' }}>
+                        <div className="flex-1">Template</div>
+                        <div className="text-right">Actions</div>
+                      </div>
                       {savedContracts.filter(c => c.isTemplate).map((c, i) => (
                         <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3.5 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
                           <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F3DC' }}>
@@ -1762,10 +1766,34 @@ export default function AppDashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate" style={{ color: '#1B4332' }}>{c.title}</p>
-                            <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName}</p>
+                            <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName} · Saved {fmtDate(c.createdAt)}</p>
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <button onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Use as starting point — clones the contract */}
+                            <button
+                              onClick={() => {
+                                const clone: SavedContract = {
+                                  ...c,
+                                  id: crypto.randomUUID(),
+                                  title: `${c.title} (copy)`,
+                                  createdAt: new Date().toISOString(),
+                                  status: 'draft',
+                                  isTemplate: false,
+                                  sentAt: undefined,
+                                  completedAt: undefined,
+                                }
+                                const next = [clone, ...loadSaved()]
+                                persistSaved(next)
+                                setSavedContracts(next)
+                                setViewingContractId(clone.id)
+                                setActiveTab('contract-view')
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                              style={{ backgroundColor: '#2D6A4F' }}
+                            >
+                              <Plus className="w-3 h-3" /> Use template
+                            </button>
+                            <button onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70 px-2 py-1.5 border" style={{ color: '#374151', borderColor: '#E5E5E2' }}>
                               <Eye className="w-3 h-3" /> View
                             </button>
                             <button
@@ -1773,7 +1801,7 @@ export default function AppDashboard() {
                                 const next = savedContracts.map(s => s.id === c.id ? { ...s, isTemplate: false } : s)
                                 setSavedContracts(next); persistSaved(next)
                               }}
-                              className="text-xs font-medium hover:opacity-70" style={{ color: '#9CA3AF' }}
+                              className="text-xs font-medium hover:opacity-70 px-2 py-1.5" style={{ color: '#9CA3AF' }}
                             >
                               Remove
                             </button>
