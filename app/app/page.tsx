@@ -1273,7 +1273,7 @@ export default function AppDashboard() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => navigate('settings' as Tab)} className="flex-1 text-xs font-medium py-1.5 border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
+                <button onClick={() => navigate('subscription')} className="flex-1 text-xs font-medium py-1.5 border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
                   Settings
                 </button>
                 <button onClick={() => signOut({ callbackUrl: '/' })} className="flex-1 text-xs font-medium py-1.5 border hover:bg-[#FAFAF8] transition-colors" style={{ borderColor: '#E5E5E2', color: '#6B7280' }}>
@@ -1827,10 +1827,25 @@ export default function AppDashboard() {
                       <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Billing & subscription</p>
                       <p className="text-sm mb-4" style={{ color: '#374151' }}>Update your payment method, view invoices, or cancel your subscription via the Stripe billing portal.</p>
                       <button
-                        onClick={async () => {
-                          const res = await fetch('/api/subscription/portal', { method: 'POST' })
-                          const data = await res.json()
-                          if (data.url) window.location.href = data.url
+                        onClick={async (e) => {
+                          const btn = e.currentTarget
+                          btn.textContent = 'Opening…'
+                          btn.setAttribute('disabled', 'true')
+                          try {
+                            const res = await fetch('/api/subscription/portal', { method: 'POST' })
+                            const data = await res.json()
+                            if (data.url) {
+                              window.location.href = data.url
+                            } else {
+                              alert(data.error ?? 'Could not open billing portal. Please try again.')
+                              btn.textContent = 'Manage billing'
+                              btn.removeAttribute('disabled')
+                            }
+                          } catch {
+                            alert('Network error. Please try again.')
+                            btn.textContent = 'Manage billing'
+                            btn.removeAttribute('disabled')
+                          }
                         }}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
                         style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}

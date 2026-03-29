@@ -10,17 +10,36 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const sub = getSubscription(session.user.email)
-  if (!sub?.stripeCustomerId) {
-    return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
+  const email = session.user.email
+  const appUrl = 'https://clausekit-lemon.vercel.app'
+
+  // Try local store first
+  let customerId = getSubscription(email)?.stripeCustomerId ?? null
+
+  // Fallback: look up customer by email in Stripe
+  if (!customerId) {
+    try {
+      const customers = await stripe.customers.list({ email, limit: 1 })
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id
+      }
+    } catch {
+      // ignore
+    }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://clausekit-lemon.vercel.app'
+  if (!customerId) {
+    return NextResponse.json({ error: 'No Stripe customer found for this account. Please subscribe first.' }, { status: 404 })
+  }
 
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: sub.stripeCustomerId,
-    return_url: `${appUrl}/app?tab=subscription`,
-  })
-
-  return NextResponse.json({ url: portalSession.url })
+  try {
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appUrl}/app`,
+    })
+    return NextResponse.json({ url: portalSession.url })
+  } catch (err) {
+    console.error('Portal error:', err)
+    return NextResponse.json({ error: 'Failed to open billing portal. Please try again.' }, { status: 500 })
+  }
 }
