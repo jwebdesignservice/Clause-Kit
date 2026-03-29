@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
@@ -35,6 +35,9 @@ import {
   ChevronDown,
   Zap,
   Star,
+  MoreHorizontal,
+  Bookmark,
+  Trash2,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -67,6 +70,7 @@ interface SavedContract {
   completedAt?: string
   content?: string
   intakeData?: Record<string, string | string[]>
+  isTemplate?: boolean
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────────
@@ -185,8 +189,62 @@ function StatusBadge({ status }: { status: ContractStatus }) {
 
 type ContractsTabFilter = 'all' | ContractStatus
 
-function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView }: {
-  savedContracts: SavedContract[]; searchQuery: string; onNew: () => void; onCheckout: (id: string) => void; onView: (id: string) => void
+// ── Contract row 3-dot menu ───────────────────────────────────────────────────
+
+function ContractRowMenu({ contract, onDelete, onSaveTemplate }: {
+  contract: SavedContract
+  onDelete: (id: string) => void
+  onSaveTemplate: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = React.useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
+        className="w-7 h-7 flex items-center justify-center hover:bg-[#F3F4F6] transition-colors"
+        style={{ color: '#9CA3AF' }}
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-8 z-50 w-44 border shadow-lg py-1"
+          style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); onSaveTemplate(contract.id); setOpen(false) }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-[#FAFAF8] text-left"
+            style={{ color: '#374151' }}
+          >
+            <Bookmark className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#2D6A4F' }} />
+            {contract.isTemplate ? 'Remove template' : 'Save as template'}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(contract.id); setOpen(false) }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-[#FEF2F2] text-left"
+            style={{ color: '#EF4444' }}
+          >
+            <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView, onDelete, onSaveTemplate }: {
+  savedContracts: SavedContract[]; searchQuery: string; onNew: () => void; onCheckout: (id: string) => void; onView: (id: string) => void; onDelete: (id: string) => void; onSaveTemplate: (id: string) => void
 }) {
   const [af, setAf] = useState<ContractsTabFilter>('all')
   const counts: Record<ContractsTabFilter, number> = {
@@ -242,11 +300,14 @@ function MyContractsTab({ savedContracts, searchQuery, onNew, onCheckout, onView
               </button>
               <div className="w-24 hidden sm:flex justify-center flex-shrink-0"><StatusBadge status={c.status} /></div>
               <div className="w-32 hidden md:block text-right text-xs flex-shrink-0" style={{ color: '#9CA3AF' }}>{c.completedAt ? fmtDate(c.completedAt) : c.sentAt ? fmtDate(c.sentAt) : fmtDate(c.createdAt)}</div>
-              <div className="w-28 flex justify-end flex-shrink-0">
-                {c.status === 'draft' && <button onClick={() => onCheckout(c.id)} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Unlock</button>}
-                {c.status === 'sent' && <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1E40AF' }}><Eye className="w-3 h-3" /> Awaiting</span>}
-                {c.status === 'completed' && <a href={`/download/${c.id}`} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Download</a>}
-                {c.status === 'expired' && <button onClick={onNew} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#9CA3AF' }}><Plus className="w-3 h-3" /> Redo</button>}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="w-24 flex justify-end">
+                  {c.status === 'draft' && <button onClick={() => onCheckout(c.id)} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Unlock</button>}
+                  {c.status === 'sent' && <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#1E40AF' }}><Eye className="w-3 h-3" /> Awaiting</span>}
+                  {c.status === 'completed' && <a href={`/download/${c.id}`} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}><Download className="w-3 h-3" /> Download</a>}
+                  {c.status === 'expired' && <button onClick={onNew} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#9CA3AF' }}><Plus className="w-3 h-3" /> Redo</button>}
+                </div>
+                <ContractRowMenu contract={c} onDelete={onDelete} onSaveTemplate={onSaveTemplate} />
               </div>
             </div>
           ))}
@@ -955,6 +1016,20 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
           )}
         </div>
 
+        {/* Save as template */}
+        <div className="flex-shrink-0 border-t px-4 pt-3 pb-0" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
+          <button
+            onClick={() => onUpdate({ ...contract, isTemplate: !contract.isTemplate })}
+            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold border transition-colors hover:bg-[#FAFAF8]"
+            style={contract.isTemplate
+              ? { borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: '#D8F3DC' }
+              : { borderColor: '#E5E5E2', color: '#6B7280', backgroundColor: 'transparent' }}
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            {contract.isTemplate ? '✓ Saved as template' : 'Save as template'}
+          </button>
+        </div>
+
         {/* Download / paywall */}
         <div className="flex-shrink-0 border-t p-4 space-y-2" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
           {sigError && (
@@ -1602,6 +1677,16 @@ export default function AppDashboard() {
                 onNew={() => navigate('new-contract')}
                 onCheckout={initiateCheckout}
                 onView={(id) => { setViewingContractId(id); setActiveTab('contract-view') }}
+                onDelete={(id) => {
+                  const next = savedContracts.filter(c => c.id !== id)
+                  setSavedContracts(next)
+                  persistSaved(next)
+                }}
+                onSaveTemplate={(id) => {
+                  const next = savedContracts.map(c => c.id === id ? { ...c, isTemplate: !c.isTemplate } : c)
+                  setSavedContracts(next)
+                  persistSaved(next)
+                }}
               />
             )}
 
@@ -1613,6 +1698,41 @@ export default function AppDashboard() {
                   <p className="text-sm" style={{ color: '#6B7280' }}>8 UK-compliant contract templates. Click any to generate instantly.</p>
                 </div>
 
+                {/* Saved templates */}
+                {savedContracts.filter(c => c.isTemplate).length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>My saved templates</h2>
+                    <div className="border" style={{ borderColor: '#E5E5E2' }}>
+                      {savedContracts.filter(c => c.isTemplate).map((c, i) => (
+                        <div key={c.id} className={cn('flex items-center gap-4 px-4 py-3.5 hover:bg-[#FAFAF8] transition-colors', i !== 0 && 'border-t')} style={{ borderColor: '#E5E5E2' }}>
+                          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F3DC' }}>
+                            <Bookmark className="w-4 h-4" style={{ color: '#2D6A4F' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: '#1B4332' }}>{c.title}</p>
+                            <p className="text-xs" style={{ color: '#9CA3AF' }}>{c.typeName}</p>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <button onClick={() => { setViewingContractId(c.id); setActiveTab('contract-view') }} className="text-xs font-semibold flex items-center gap-1 hover:opacity-70" style={{ color: '#2D6A4F' }}>
+                              <Eye className="w-3 h-3" /> View
+                            </button>
+                            <button
+                              onClick={() => {
+                                const next = savedContracts.map(s => s.id === c.id ? { ...s, isTemplate: false } : s)
+                                setSavedContracts(next); persistSaved(next)
+                              }}
+                              className="text-xs font-medium hover:opacity-70" style={{ color: '#9CA3AF' }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <h2 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9CA3AF' }}>Standard templates</h2>
                 <div className="border" style={{ borderColor: '#E5E5E2' }}>
                   <div className="flex items-center gap-4 px-4 py-2.5 border-b text-xs font-bold uppercase tracking-widest" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#9CA3AF' }}>
                     <div className="flex-1">Template</div>
