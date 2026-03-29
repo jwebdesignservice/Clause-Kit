@@ -680,30 +680,110 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
 
 // ── Floating selection toolbar ───────────────────────────────────────────────
 
-function SelectionToolbar({ position, onClose }: { position: { x: number; y: number }; onClose: () => void }) {
-  const execCmd = (cmd: string, value?: string) => {
+// ── Inline format toolbar — always visible at top of sidebar ─────────────────
+
+function FormatToolbar() {
+  const exec = (cmd: string, value?: string) => {
+    // Re-focus the last active contentEditable before executing
     document.execCommand(cmd, false, value ?? undefined)
-    onClose()
   }
+
+  const [isBold, setIsBold] = useState(false)
+  const [isItalic, setIsItalic] = useState(false)
+  const [isUnderline, setIsUnderline] = useState(false)
+  const [textColor, setTextColor] = useState('#374151')
+
+  // Update active state on selection change
+  useEffect(() => {
+    const update = () => {
+      setIsBold(document.queryCommandState('bold'))
+      setIsItalic(document.queryCommandState('italic'))
+      setIsUnderline(document.queryCommandState('underline'))
+    }
+    document.addEventListener('selectionchange', update)
+    return () => document.removeEventListener('selectionchange', update)
+  }, [])
+
+  const btnBase = "flex items-center justify-center w-8 h-8 text-xs font-bold border transition-colors"
+  const active = { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#1B4332' }
+  const inactive = { backgroundColor: '#FFFFFF', color: '#374151', borderColor: '#E5E5E2' }
+
   return (
-    <div
-      className="fixed z-50 flex items-center gap-0.5 px-2 py-1.5 shadow-lg border"
-      style={{ left: position.x, top: position.y - 48, backgroundColor: '#1B4332', borderColor: '#2D6A4F', transform: 'translateX(-50%)' }}
-      onMouseDown={(e) => e.preventDefault()}
-    >
-      <button onClick={() => execCmd("bold")} className="px-2 py-1 text-xs font-bold text-white hover:bg-[#2D6A4F] transition-colors" title="Bold">B</button>
-      <button onClick={() => execCmd("italic")} className="px-2 py-1 text-xs italic text-white hover:bg-[#2D6A4F] transition-colors" title="Italic">I</button>
-      <button onClick={() => execCmd("underline")} className="px-2 py-1 text-xs underline text-white hover:bg-[#2D6A4F] transition-colors" title="Underline">U</button>
-      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
-      <button onClick={() => execCmd("fontSize", "2")} className="px-1.5 py-1 text-white hover:bg-[#2D6A4F] transition-colors" title="Smaller" style={{ fontSize: 10 }}>A-</button>
-      <button onClick={() => execCmd("fontSize", "4")} className="px-1.5 py-1 text-white hover:bg-[#2D6A4F] transition-colors" title="Larger" style={{ fontSize: 14 }}>A+</button>
-      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
-      <label className="flex items-center gap-1 cursor-pointer px-1" title="Text colour">
-        <span className="text-xs text-white font-medium">A</span>
-        <input type="color" defaultValue="#374151" className="w-4 h-4 cursor-pointer" style={{ border: "none", padding: 0, background: "transparent" }} onChange={(e) => execCmd("foreColor", e.target.value)} />
-      </label>
-      <div className="w-px h-4 mx-1" style={{ backgroundColor: '#2D6A4F' }} />
-      <button onClick={() => { document.execCommand("removeFormat"); onClose() }} className="px-2 py-1 text-xs text-white hover:bg-[#2D6A4F] transition-colors" title="Clear">✕</button>
+    <div className="flex-shrink-0 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+      <div className="px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Text formatting</p>
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Bold */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); exec('bold') }}
+            className={btnBase}
+            style={isBold ? active : inactive}
+            title="Bold"
+          >B</button>
+
+          {/* Italic */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); exec('italic') }}
+            className={`${btnBase} italic`}
+            style={isItalic ? active : inactive}
+            title="Italic"
+          >I</button>
+
+          {/* Underline */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); exec('underline') }}
+            className={`${btnBase} underline`}
+            style={isUnderline ? active : inactive}
+            title="Underline"
+          >U</button>
+
+          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
+
+          {/* Font smaller */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '2') }}
+            className={btnBase}
+            style={inactive}
+            title="Smaller text"
+          ><span style={{ fontSize: 10 }}>A−</span></button>
+
+          {/* Font larger */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '4') }}
+            className={btnBase}
+            style={inactive}
+            title="Larger text"
+          ><span style={{ fontSize: 14 }}>A+</span></button>
+
+          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
+
+          {/* Text colour */}
+          <label className="relative flex items-center justify-center w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }} title="Text colour">
+            <span className="text-xs font-bold" style={{ color: textColor }}>A</span>
+            <div className="absolute bottom-1 left-1 right-1 h-1" style={{ backgroundColor: textColor }} />
+            <input
+              type="color"
+              value={textColor}
+              onChange={(e) => {
+                setTextColor(e.target.value)
+                exec('foreColor', e.target.value)
+              }}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+          </label>
+
+          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
+
+          {/* Clear formatting */}
+          <button
+            onMouseDown={(e) => { e.preventDefault(); document.execCommand('removeFormat', false) }}
+            className={btnBase}
+            style={inactive}
+            title="Clear formatting"
+          >✕</button>
+        </div>
+        <p className="text-[10px] mt-2" style={{ color: '#9CA3AF' }}>Select text in the document then click a format</p>
+      </div>
     </div>
   )
 }
@@ -728,7 +808,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(400)
   const [docHeadingWeight, setDocHeadingWeight] = useState<600 | 700 | 800>(700)
   const [docLogo, setDocLogo] = useState<string>(String(contract.intakeData?.yourLogo ?? ''))
-  const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number } | null>(null)
+  // selectionToolbar removed — replaced by persistent FormatToolbar in sidebar
 
   const senderReady = !sigState.sig1Empty && !!sigState.name1.trim() && !!sigState.date1
 
@@ -834,16 +914,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
           <DocumentPartyHeader contract={contract} intake={intake} />
 
           {/* Document body — parsed sections */}
-          <div onMouseUp={() => {
-            const sel = window.getSelection()
-            if (sel && sel.toString().length > 0 && sel.rangeCount > 0) {
-              const r = sel.getRangeAt(0).getBoundingClientRect()
-              setSelectionToolbar({ x: r.left + r.width / 2, y: r.top + window.scrollY })
-            } else { setSelectionToolbar(null) }
-          }}>
-            {selectionToolbar && (
-              <SelectionToolbar position={selectionToolbar} onClose={() => setSelectionToolbar(null)} />
-            )}
+          <div>
             {blocks.map((block, i) => {
               const parsed = parseBlock(block)
               const updateBlock = (text: string) => {
@@ -907,6 +978,8 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
 
       {/* ── Right: Info Sidebar ── */}
       <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
+        {/* Format toolbar — always visible */}
+        <FormatToolbar />
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
           {(['parties', 'styling', 'details'] as const).map((t) => (
