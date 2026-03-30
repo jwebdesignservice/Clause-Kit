@@ -7,7 +7,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasActiveSubscription, getDailyUsage, incrementDailyUsage } from "@/lib/subscription-store";
 
-const DAILY_LIMIT = 20;
+const DAILY_LIMIT_PRO = 20;
+const DAILY_LIMIT_FREE = 3;
 
 // ── Rate limiter ───────────────────────────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -459,15 +460,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 })
   }
 
-  // ── Subscription daily limit check ───────────────────────────────────────
+  // ── Daily limit check ────────────────────────────────────────────────────
   const session = await getServerSession(authOptions)
-  const userId = session?.user?.email ?? null
-  if (userId && hasActiveSubscription(userId)) {
-    if (getDailyUsage(userId) >= DAILY_LIMIT) {
-      return NextResponse.json({ error: 'Daily limit reached. You can generate up to 20 contracts per day on your plan.' }, { status: 429 })
-    }
-    incrementDailyUsage(userId)
+  const userId = session?.user?.email ?? ip // fall back to IP for unauthenticated users
+  const isPro = userId !== ip && hasActiveSubscription(userId)
+  const dailyLimit = isPro ? DAILY_LIMIT_PRO : DAILY_LIMIT_FREE
+
+  if (getDailyUsage(userId) >= dailyLimit) {
+    const msg = isPro
+      ? 'Daily limit reached. You can generate up to 20 contracts per day on your plan.'
+      : 'Daily limit reached. Free accounts can generate up to 3 contracts per day. Upgrade to Pro for up to 20/day.'
+    return NextResponse.json({ error: msg }, { status: 429 })
   }
+  incrementDailyUsage(userId)
 
   let body: { contractType: ContractType; fields?: Record<string, string | string[]>; customDescription?: string }
   try {
