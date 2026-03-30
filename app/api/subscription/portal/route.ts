@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getSubscription } from '@/lib/subscription-store'
+import { getSubscriptionAsync } from '@/lib/subscription-store'
 import { stripe } from '@/lib/stripe'
 
 export async function POST() {
@@ -13,8 +13,9 @@ export async function POST() {
   const email = session.user.email
   const appUrl = 'https://clausekit-lemon.vercel.app'
 
-  // Try local store first
-  let customerId = getSubscription(email)?.stripeCustomerId ?? null
+  // Try store first
+  const sub = await getSubscriptionAsync(email)
+  let customerId = sub?.stripeCustomerId ?? null
 
   // Fallback: look up customer by email in Stripe
   if (!customerId) {
