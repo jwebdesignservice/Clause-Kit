@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2, Download, Eye, Check } from 'lucide-react';
 
 interface PaywallClientProps {
   contractId: string;
@@ -39,9 +40,9 @@ export default function PaywallClient({
   }
 
   return (
-    <div className="font-mono text-sm leading-relaxed text-gray-800">
+    <div className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>
       {/* Fully visible section */}
-      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800 mb-0">
+      <pre className="whitespace-pre-wrap text-sm leading-relaxed mb-0" style={{ fontFamily: 'inherit', color: '#1A1A1A' }}>
         {visibleContent}
       </pre>
 
@@ -49,131 +50,83 @@ export default function PaywallClient({
       <div className="relative mt-0">
         {/* Blurred content */}
         <pre
-          className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800 select-none"
-          style={{ filter: 'blur(5px)', userSelect: 'none', pointerEvents: 'none' }}
+          className="whitespace-pre-wrap text-sm leading-relaxed select-none"
+          style={{ fontFamily: 'inherit', filter: 'blur(5px)', userSelect: 'none', pointerEvents: 'none', color: '#1A1A1A' }}
           aria-hidden="true"
         >
           {blurredContent}
         </pre>
 
-        {/* Gradient fade at the top of blur */}
+        {/* Gradient fade */}
         <div
           className="absolute top-0 left-0 right-0 h-16 pointer-events-none"
-          style={{
-            background: 'linear-gradient(to bottom, white 0%, transparent 100%)',
-          }}
+          style={{ background: 'linear-gradient(to bottom, white 0%, transparent 100%)' }}
         />
 
         {/* Paywall overlay */}
-        <div className="absolute inset-0 flex items-start justify-center pt-16">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 mx-4 max-w-md w-full text-center">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-6 h-6 text-indigo-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Unlock your full contract
-            </h2>
-            <p className="text-gray-500 text-sm mb-1">
-              {title}
-            </p>
-            <p className="text-gray-400 text-xs mb-6">
-              Governed by English &amp; Welsh law · Ready to sign
-            </p>
-
-            <div className="flex items-baseline justify-center gap-1 mb-6">
-              <span className="text-4xl font-bold text-gray-900">£7</span>
-              <span className="text-gray-500 text-sm">one-time</span>
+        <div className="absolute inset-0 flex items-start justify-center pt-12">
+          <div className="w-full max-w-sm mx-4 border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}>
+            {/* Header */}
+            <div className="px-5 py-4 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#1B4332' }}>
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} />
+                <h2 className="text-sm font-bold text-white">Your contract is ready</h2>
+              </div>
+              <p className="text-xs mt-1 truncate" style={{ color: '#D8F3DC' }}>{title}</p>
             </div>
 
-            <ul className="text-sm text-gray-600 text-left space-y-2 mb-6">
-              {[
-                'Full contract — all clauses unlocked',
-                'Download as PDF and Word (.docx)',
-                'UK law compliant, ready to use',
-                'No subscription required',
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <svg
-                    className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
+            <div className="px-5 py-4">
+              {/* Price */}
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="font-bold" style={{ fontSize: 36, color: '#1B4332', lineHeight: 1 }}>£7</span>
+                <span className="text-sm" style={{ color: '#6B7280' }}>one-time</span>
+              </div>
 
-            {error && (
-              <p className="text-red-500 text-sm mb-4">{error}</p>
-            )}
+              {/* Features */}
+              <ul className="space-y-2 mb-5">
+                {[
+                  'Full contract — all clauses unlocked',
+                  'Download as PDF and Word (.docx)',
+                  'UK law compliant, ready to use',
+                  'No subscription required',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#52B788' }} strokeWidth={3} />
+                    <span className="text-xs leading-relaxed" style={{ color: '#374151' }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <button
-              onClick={handleUnlock}
-              disabled={loading}
-              className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                    />
-                  </svg>
-                  Redirecting to payment…
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  </svg>
-                  Pay £7 — Unlock full contract
-                </>
+              {error && (
+                <div className="flex items-center gap-2 px-3 py-2 border mb-3 text-xs" style={{ backgroundColor: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+                  <span className="font-bold flex-shrink-0">!</span>
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
 
-            <p className="mt-4 text-xs text-gray-400">
-              Secured by Stripe · Instant download after payment
-            </p>
+              <button
+                onClick={handleUnlock}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Redirecting to payment…
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Pay £7 — Unlock full contract
+                  </>
+                )}
+              </button>
+
+              <p className="mt-3 text-xs text-center" style={{ color: '#9CA3AF' }}>
+                Secured by Stripe · Instant download
+              </p>
+            </div>
           </div>
         </div>
       </div>

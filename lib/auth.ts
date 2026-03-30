@@ -20,6 +20,12 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // Require ADMIN_PASSWORD env var — credentials login is for operator access only
+        const adminPassword = process.env.ADMIN_PASSWORD
+        if (!adminPassword) return null
+        if (credentials.password !== adminPassword) return null
+
         return {
           id: credentials.email as string,
           email: credentials.email as string,
