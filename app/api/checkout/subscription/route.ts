@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url, sessionId: session.id });
   } catch (error) {
     console.error('Subscription checkout error:', error);
-    return NextResponse.json({ error: 'Failed to create subscription session' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Failed to create subscription session', detail: message }, { status: 500 });
   }
 }
