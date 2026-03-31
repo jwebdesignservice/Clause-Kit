@@ -870,11 +870,12 @@ function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject
   )
 }
 
-function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
+function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
   contract: SavedContract
   onBack: () => void
   onCheckout: (id: string) => void
   onUpdate: (updated: SavedContract) => void
+  session: { user?: { name?: string | null; email?: string | null } } | null
 }) {
   const [sideTab, setSideTab] = useState<'parties' | 'details' | 'styling'>('parties')
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
@@ -1233,6 +1234,24 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
             <a href={`/download/${contract.id}`} className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
               <Download className="w-4 h-4" /> Download PDF + Word
             </a>
+          ) : !session ? (
+            /* Require sign-in to send contracts */
+            <div className="text-center">
+              <div className="flex items-center gap-2 justify-center mb-3 px-3 py-2 border" style={{ borderColor: '#FCD34D', backgroundColor: '#FFFBEB' }}>
+                <Lock className="w-4 h-4 flex-shrink-0" style={{ color: '#92400E' }} />
+                <p className="text-xs font-medium" style={{ color: '#92400E' }}>Sign in to send contracts and track responses</p>
+              </div>
+              <a
+                href="/auth/signin"
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                Sign in to continue
+              </a>
+              <p className="text-xs mt-2" style={{ color: '#9CA3AF' }}>
+                Your contracts will be saved to your account
+              </p>
+            </div>
           ) : (
             <>
               <button
@@ -2288,6 +2307,7 @@ export default function AppDashboard() {
                         setTimeout(() => setTemplateToast(null), 3500)
                       }
                     }}
+                    session={session}
                   />
                 </motion.div>
               )
