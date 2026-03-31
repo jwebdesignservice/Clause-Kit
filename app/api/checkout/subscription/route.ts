@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
     const { email } = body
+
+    // Create Stripe instance directly to avoid proxy issues
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey || !stripeKey.startsWith('sk_')) {
+      return NextResponse.json({ 
+        error: 'Stripe not configured', 
+        detail: `Key present: ${!!stripeKey}, starts with sk_: ${stripeKey?.startsWith('sk_')}` 
+      }, { status: 500 });
+    }
+    
+    const stripe = new Stripe(stripeKey);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const subscriptionPriceId = process.env.STRIPE_PRICE_ID_SUBSCRIPTION;
