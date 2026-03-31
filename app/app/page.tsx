@@ -870,12 +870,14 @@ function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject
   )
 }
 
-function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
+function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onUpdate, session, isSubscribed }: {
   contract: SavedContract
   onBack: () => void
   onCheckout: (id: string) => void
+  onSubscribe: () => Promise<void>
   onUpdate: (updated: SavedContract) => void
   session: { user?: { name?: string | null; email?: string | null } } | null
+  isSubscribed: boolean
 }) {
   const [sideTab, setSideTab] = useState<'parties' | 'details' | 'styling'>('parties')
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
@@ -883,6 +885,8 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [sigState, setSigState] = useState<SignatureState>({ sig1Empty: true, name1: '', date1: '' })
   const [sigError, setSigError] = useState<string | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [subscribeLoading, setSubscribeLoading] = useState(false)
   const [docFont, setDocFont] = useState('Inter, sans-serif')
   const [docBodySize, setDocBodySize] = useState(14)
   const [docHeadingSize, setDocHeadingSize] = useState(18)
@@ -1230,6 +1234,112 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
               <span>{sigError}</span>
             </div>
           )}
+          {/* Payment choice modal */}
+          <AnimatePresence>
+            {showPaymentModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                onClick={() => setShowPaymentModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="w-full max-w-md border shadow-xl"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal header */}
+                  <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#E5E5E2' }}>
+                    <h3 className="font-display text-lg font-bold" style={{ color: '#1B4332' }}>Choose how to pay</h3>
+                    <button onClick={() => setShowPaymentModal(false)} className="p-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal content */}
+                  <div className="p-5 space-y-4">
+                    {/* One-time payment option */}
+                    <button
+                      onClick={async () => {
+                        setShowPaymentModal(false)
+                        setCheckoutLoading(true)
+                        await onCheckout(contract.id)
+                        setCheckoutLoading(false)
+                      }}
+                      disabled={checkoutLoading}
+                      className="w-full border-2 p-4 text-left hover:border-[#2D6A4F] transition-colors group"
+                      style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold mb-1" style={{ color: '#1B4332' }}>Pay once</p>
+                          <p className="text-sm" style={{ color: '#6B7280' }}>Download this contract only</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display text-2xl font-bold" style={{ color: '#1B4332' }}>£7</p>
+                          <p className="text-xs" style={{ color: '#9CA3AF' }}>one-time</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5" style={{ color: '#52B788' }} />
+                        <span className="text-xs" style={{ color: '#6B7280' }}>PDF + Word download</span>
+                      </div>
+                    </button>
+
+                    {/* Pro subscription option */}
+                    <button
+                      onClick={async () => {
+                        setSubscribeLoading(true)
+                        await onSubscribe()
+                        setSubscribeLoading(false)
+                      }}
+                      disabled={subscribeLoading}
+                      className="w-full border-2 p-4 text-left transition-colors relative overflow-hidden"
+                      style={{ borderColor: '#2D6A4F', backgroundColor: '#1B4332' }}
+                    >
+                      <div className="absolute top-0 right-0 px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: '#52B788', color: '#1B4332' }}>
+                        BEST VALUE
+                      </div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold mb-1 text-white">Go Pro</p>
+                          <p className="text-sm" style={{ color: '#D8F3DC' }}>Unlimited contracts</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display text-2xl font-bold text-white">£19</p>
+                          <p className="text-xs" style={{ color: '#D8F3DC' }}>/month</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-1.5">
+                        {['Up to 20 contracts/day', 'All 8 contract types', 'Cancel any time'].map((f) => (
+                          <div key={f} className="flex items-center gap-2">
+                            <Check className="w-3.5 h-3.5" style={{ color: '#52B788' }} />
+                            <span className="text-xs text-white">{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {subscribeLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(27,67,50,0.9)' }}>
+                          <Loader2 className="w-5 h-5 animate-spin text-white" />
+                        </div>
+                      )}
+                    </button>
+
+                    <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                      Secure payment via Stripe · Cancel any time
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {contract.status === 'completed' ? (
             <a href={`/download/${contract.id}`} className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
               <Download className="w-4 h-4" /> Download PDF + Word
@@ -1252,11 +1362,11 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
                 Your contracts will be saved to your account
               </p>
             </div>
-          ) : (
+          ) : isSubscribed ? (
+            /* Pro subscriber — no payment needed */
             <>
               <button
                 onClick={async () => {
-                  // Validate sender signature before proceeding
                   if (!senderReady) {
                     const missing: string[] = []
                     if (sigState.sig1Empty) missing.push('signature')
@@ -1266,18 +1376,43 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate, session }: {
                     return
                   }
                   setSigError(null)
-                  setCheckoutLoading(true)
-                  await onCheckout(contract.id)
-                  setCheckoutLoading(false)
+                  // TODO: Mark contract as sent without payment
+                  alert('Contract sent! (Pro subscriber)')
+                }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                <ArrowRight className="w-4 h-4" /> Sign &amp; Send
+              </button>
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <div className="w-2 h-2" style={{ backgroundColor: '#52B788', borderRadius: '50%' }} />
+                <p className="text-xs font-medium" style={{ color: '#52B788' }}>Pro plan — no charge</p>
+              </div>
+            </>
+          ) : (
+            /* Non-subscriber — show payment options */
+            <>
+              <button
+                onClick={() => {
+                  if (!senderReady) {
+                    const missing: string[] = []
+                    if (sigState.sig1Empty) missing.push('signature')
+                    if (!sigState.name1.trim()) missing.push('full name')
+                    if (!sigState.date1) missing.push('date')
+                    setSigError(`Please complete your ${missing.join(', ')} before sending.`)
+                    return
+                  }
+                  setSigError(null)
+                  setShowPaymentModal(true)
                 }}
                 disabled={checkoutLoading}
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#2D6A4F' }}
               >
-                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting&hellip;</> : <><Download className="w-4 h-4" /> &pound;7 &mdash; Sign &amp; Send</>}
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting&hellip;</> : <><ArrowRight className="w-4 h-4" /> Sign &amp; Send</>}
               </button>
               <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                {senderReady ? 'Ready to send \u2014 secure payment via Stripe' : 'Complete your signature below to send'}
+                {senderReady ? 'Ready to send' : 'Complete your signature below to send'}
               </p>
             </>
           )}
@@ -2296,6 +2431,7 @@ export default function AppDashboard() {
                     contract={c}
                     onBack={() => { setActiveTab('my-contracts'); setViewingContractId(null) }}
                     onCheckout={initiateCheckout}
+                    onSubscribe={handleSubscribe}
                     onUpdate={(updated) => {
                       const prev = savedContracts.find(s => s.id === updated.id)
                       const next = savedContracts.map(s => s.id === updated.id ? updated : s)
@@ -2308,6 +2444,7 @@ export default function AppDashboard() {
                       }
                     }}
                     session={session}
+                    isSubscribed={isSubscribed}
                   />
                 </motion.div>
               )
