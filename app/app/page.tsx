@@ -1324,9 +1324,16 @@ export default function AppDashboard() {
         body: JSON.stringify({ email: session?.user?.email ?? undefined }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch {
-      // silent fail — keep button available
+      console.log('Subscription response:', data)
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('No URL in response:', data)
+        alert('Checkout failed: ' + (data.error || 'No checkout URL returned'))
+      }
+    } catch (err) {
+      console.error('Subscription error:', err)
+      alert('Checkout failed. Please try again.')
     } finally {
       setSubLoading(false)
     }
