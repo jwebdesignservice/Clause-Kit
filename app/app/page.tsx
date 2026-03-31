@@ -1176,29 +1176,6 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
                   </div>
                 </div>
 
-                {/* Body weight */}
-                <div className="mb-4">
-                  <p className="text-xs font-semibold mb-2" style={{ color: '#374151' }}>Body weight</p>
-                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
-                    {([400, 500, 600] as const).map((w, wi) => (
-                      <button key={w} onClick={() => setDocFontWeight(w)} className={`flex-1 py-2 text-xs font-medium transition-colors${wi !== 2 ? ' border-r' : ''}`} style={docFontWeight === w ? { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#E5E5E2' } : { backgroundColor: '#FFFFFF', color: '#6B7280', borderColor: '#E5E5E2' }}>
-                        {w === 400 ? 'Regular' : w === 500 ? 'Medium' : 'Semibold'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Heading weight */}
-                <div>
-                  <p className="text-xs font-semibold mb-2" style={{ color: '#374151' }}>Heading weight</p>
-                  <div className="flex border overflow-hidden" style={{ borderColor: '#E5E5E2' }}>
-                    {([600, 700, 800] as const).map((w, wi) => (
-                      <button key={w} onClick={() => setDocHeadingWeight(w)} className={`flex-1 py-2 text-xs font-medium transition-colors${wi !== 2 ? ' border-r' : ''}`} style={docHeadingWeight === w ? { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#E5E5E2' } : { backgroundColor: '#FFFFFF', color: '#6B7280', borderColor: '#E5E5E2' }}>
-                        {w === 600 ? 'Semi' : w === 700 ? 'Bold' : 'Black'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* ── Colours ── */}
