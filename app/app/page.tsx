@@ -680,11 +680,10 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
 
 // ── Floating selection toolbar ───────────────────────────────────────────────
 
-// ── Inline format toolbar — always visible at top of sidebar ─────────────────
+// ── Floating draggable format toolbar ─────────────────────────────────────────
 
-function FormatToolbar() {
+function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const exec = (cmd: string, value?: string) => {
-    // Re-focus the last active contentEditable before executing
     document.execCommand(cmd, false, value ?? undefined)
   }
 
@@ -692,6 +691,23 @@ function FormatToolbar() {
   const [isItalic, setIsItalic] = useState(false)
   const [isUnderline, setIsUnderline] = useState(false)
   const [textColor, setTextColor] = useState('#374151')
+  
+  // Dragging state
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+  const toolbarRef = useRef<HTMLDivElement>(null)
+
+  // Set initial position above the contract (centered horizontally)
+  useEffect(() => {
+    if (containerRef.current && !position) {
+      const containerRect = containerRef.current.getBoundingClientRect()
+      setPosition({
+        x: containerRect.left + (containerRect.width / 2) - 175, // center (toolbar ~350px wide)
+        y: containerRect.top + 80, // below header
+      })
+    }
+  }, [containerRef, position])
 
   // Update active state on selection change
   useEffect(() => {
@@ -704,18 +720,79 @@ function FormatToolbar() {
     return () => document.removeEventListener('selectionchange', update)
   }, [])
 
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button, input, label')) return
+    e.preventDefault()
+    setIsDragging(true)
+    const rect = toolbarRef.current?.getBoundingClientRect()
+    if (rect) {
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    }
+  }
+
+  useEffect(() => {
+    if (!isDragging) return
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      })
+    }
+    
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
+
   const btnBase = "flex items-center justify-center w-8 h-8 text-xs font-bold border transition-colors"
   const active = { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#1B4332' }
   const inactive = { backgroundColor: '#FFFFFF', color: '#374151', borderColor: '#E5E5E2' }
 
+  if (!position) return null
+
   return (
-    <div className="flex-shrink-0 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+    <div
+      ref={toolbarRef}
+      onMouseDown={handleMouseDown}
+      className="fixed z-50 shadow-lg border"
+      style={{
+        left: position.x,
+        top: position.y,
+        borderColor: '#1B4332',
+        backgroundColor: '#FFFFFF',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+      }}
+    >
+      {/* Drag handle bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#1B4332' }}>
+        <div className="flex items-center gap-2">
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#D8F3DC' }}>
+            <circle cx="5" cy="6" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="6" r="1.5" fill="currentColor" />
+            <circle cx="19" cy="6" r="1.5" fill="currentColor" />
+            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+          </svg>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#D8F3DC' }}>Text formatting</p>
+        </div>
+      </div>
+      
       <div className="px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Text formatting</p>
         <div className="flex items-center gap-1 flex-wrap">
           {/* Bold */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); exec('bold') }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('bold') }}
             className={btnBase}
             style={isBold ? active : inactive}
             title="Bold"
@@ -723,7 +800,7 @@ function FormatToolbar() {
 
           {/* Italic */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); exec('italic') }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('italic') }}
             className={`${btnBase} italic`}
             style={isItalic ? active : inactive}
             title="Italic"
@@ -731,7 +808,7 @@ function FormatToolbar() {
 
           {/* Underline */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); exec('underline') }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('underline') }}
             className={`${btnBase} underline`}
             style={isUnderline ? active : inactive}
             title="Underline"
@@ -741,7 +818,7 @@ function FormatToolbar() {
 
           {/* Font smaller */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '2') }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('fontSize', '2') }}
             className={btnBase}
             style={inactive}
             title="Smaller text"
@@ -749,7 +826,7 @@ function FormatToolbar() {
 
           {/* Font larger */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '4') }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('fontSize', '4') }}
             className={btnBase}
             style={inactive}
             title="Larger text"
@@ -758,7 +835,12 @@ function FormatToolbar() {
           <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
 
           {/* Text colour */}
-          <label className="relative flex items-center justify-center w-8 h-8 border cursor-pointer" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }} title="Text colour">
+          <label 
+            className="relative flex items-center justify-center w-8 h-8 border cursor-pointer" 
+            style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }} 
+            title="Text colour"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <span className="text-xs font-bold" style={{ color: textColor }}>A</span>
             <div className="absolute bottom-1 left-1 right-1 h-1" style={{ backgroundColor: textColor }} />
             <input
@@ -776,13 +858,13 @@ function FormatToolbar() {
 
           {/* Clear formatting */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); document.execCommand('removeFormat', false) }}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false) }}
             className={btnBase}
             style={inactive}
             title="Clear formatting"
           >✕</button>
         </div>
-        <p className="text-[10px] mt-2" style={{ color: '#9CA3AF' }}>Select text in the document then click a format</p>
+        <p className="text-[10px] mt-2" style={{ color: '#9CA3AF' }}>Select text then click a format · Drag to move</p>
       </div>
     </div>
   )
@@ -808,7 +890,7 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
   const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(400)
   const [docHeadingWeight, setDocHeadingWeight] = useState<600 | 700 | 800>(700)
   const [docLogo, setDocLogo] = useState<string>(String(contract.intakeData?.yourLogo ?? ''))
-  // selectionToolbar removed — replaced by persistent FormatToolbar in sidebar
+  const documentContainerRef = useRef<HTMLDivElement>(null)
 
   const senderReady = !sigState.sig1Empty && !!sigState.name1.trim() && !!sigState.date1
 
@@ -875,8 +957,11 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
 
   return (
     <div className="flex h-full overflow-hidden">
+      {/* Floating format toolbar */}
+      <FloatingFormatToolbar containerRef={documentContainerRef} />
+      
       {/* ── Left: Editable Document ── */}
-      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont }}>
+      <div ref={documentContainerRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont }}>
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
@@ -978,8 +1063,6 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
 
       {/* ── Right: Info Sidebar ── */}
       <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
-        {/* Format toolbar — always visible */}
-        <FormatToolbar />
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
           {(['parties', 'styling', 'details'] as const).map((t) => (
