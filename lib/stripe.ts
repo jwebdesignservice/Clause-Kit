@@ -5,7 +5,7 @@ let _stripe: Stripe | null = null;
 export function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY ?? '';
-    _stripe = new Stripe(key || 'sk_test_placeholder', { apiVersion: "2026-02-25.clover" });
+    _stripe = new Stripe(key || 'sk_test_placeholder');
   }
   return _stripe;
 }
