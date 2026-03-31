@@ -1106,21 +1106,6 @@ function ContractViewer({ contract, onBack, onCheckout, onUpdate }: {
 
           {sideTab === 'styling' && (
             <div className="space-y-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Logo</p>
-                {docLogo ? (
-                  <div className="flex items-center gap-3 p-3 border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-                    <img src={docLogo} alt="Logo" className="h-8 object-contain" style={{ maxWidth: 100 }} />
-                    <button onClick={() => setDocLogo('')} className="text-xs font-medium hover:opacity-70" style={{ color: '#EF4444' }}>Remove</button>
-                  </div>
-                ) : (
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed py-4 cursor-pointer hover:border-[#2D6A4F] transition-colors" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-                    <input type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2MB'); return }; const reader = new FileReader(); reader.onload = (ev) => setDocLogo(ev.target?.result as string ?? ''); reader.readAsDataURL(file) }} />
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                    <span className="text-sm" style={{ color: '#6B7280' }}>Upload logo</span>
-                  </label>
-                )}
-              </div>
               {/* ── Logo ── */}
               <div className="pb-5 border-b" style={{ borderColor: '#E5E5E2' }}>
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#9CA3AF' }}>Logo</p>
