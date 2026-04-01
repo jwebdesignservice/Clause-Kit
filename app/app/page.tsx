@@ -1498,7 +1498,7 @@ export default function AppDashboard() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [templateToast, setTemplateToast] = useState<'saved' | 'removed' | null>(null)
   const [sendToast, setSendToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [sentModal, setSentModal] = useState<{ contractTitle: string; recipientName: string; recipientEmail: string } | null>(null)
+  const [sentModal, setSentModal] = useState<{ contractTitle: string; recipientName: string; recipientEmail: string; isResend?: boolean } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -1586,18 +1586,16 @@ export default function AppDashboard() {
       setSavedContracts(updated)
       persistSaved(updated)
 
-      // Show success modal (not for resends — just a toast)
-      if (resend) {
-        setSendToast({ type: 'success', message: 'Contract resent successfully!' })
-        setTimeout(() => setSendToast(null), 5000)
-      } else {
-        setSentModal({
-          contractTitle: contract.title,
-          recipientName: contract.party2 || 'your client',
-          recipientEmail: contract.party2Email || '',
-        })
-        
-        // Add notification
+      // Show success modal
+      setSentModal({
+        contractTitle: contract.title,
+        recipientName: contract.party2 || 'your client',
+        recipientEmail: contract.party2Email || '',
+        isResend: resend,
+      })
+      
+      // Add notification (only for first send)
+      if (!resend) {
         const newNotif: Notification = {
           id: `notif-${Date.now()}`,
           type: 'contract_sent',
@@ -1973,8 +1971,8 @@ export default function AppDashboard() {
                   <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: '#1B4332', borderRadius: '50%' }}>
                     <Check className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="font-display text-xl font-bold mb-1" style={{ color: '#1B4332' }}>Contract sent!</h3>
-                  <p className="text-sm" style={{ color: '#2D6A4F' }}>Your contract is on its way</p>
+                  <h3 className="font-display text-xl font-bold mb-1" style={{ color: '#1B4332' }}>{sentModal.isResend ? 'Contract resent!' : 'Contract sent!'}</h3>
+                  <p className="text-sm" style={{ color: '#2D6A4F' }}>{sentModal.isResend ? 'Your updated contract is on its way' : 'Your contract is on its way'}</p>
                 </div>
 
                 {/* Details */}
