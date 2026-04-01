@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { createSigningToken } from '@/lib/signing';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -15,8 +16,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Generate signing token for party2 (client)
+    const token = createSigningToken(contractId, 'party2', recipientEmail);
+    
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const signingLink = `${appUrl}/sign/${contractId}`;
+    const signingLink = `${appUrl}/sign/${contractId}?token=${token}`;
 
     // Send email via Resend
     const { error } = await resend.emails.send({
