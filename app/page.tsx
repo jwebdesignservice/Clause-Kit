@@ -536,7 +536,7 @@ export default function HomePage() {
             </h2>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="overflow-x-auto border" style={{ borderColor: '#E5E5E2' }}>
+          <motion.div variants={fadeUp} className="overflow-x-auto border mt-5" style={{ borderColor: '#E5E5E2' }}>
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
