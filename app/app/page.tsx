@@ -1476,6 +1476,7 @@ export default function AppDashboard() {
   const [subscribeSuccess, setSubscribeSuccess] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [templateToast, setTemplateToast] = useState<'saved' | 'removed' | null>(null)
+  const [sendToast, setSendToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -1561,10 +1562,12 @@ export default function AppDashboard() {
       setSavedContracts(updated)
       persistSaved(updated)
 
-      alert(resend ? 'Contract resent successfully!' : 'Contract sent successfully!')
+      setSendToast({ type: 'success', message: resend ? 'Contract resent successfully!' : 'Contract sent to client!' })
+      setTimeout(() => setSendToast(null), 5000)
     } catch (err) {
       console.error('Send contract error:', err)
-      alert(err instanceof Error ? err.message : 'Failed to send contract')
+      setSendToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to send contract' })
+      setTimeout(() => setSendToast(null), 5000)
     }
   }
 
@@ -1860,6 +1863,32 @@ export default function AppDashboard() {
                 )}
               </div>
               <button onClick={() => setTemplateToast(null)} className="ml-2 hover:opacity-70" style={{ color: '#9CA3AF' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+          {sendToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -40 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-4 left-1/2 z-50 flex items-center gap-3 px-5 py-3 shadow-lg border"
+              style={{
+                transform: 'translateX(-50%)',
+                backgroundColor: sendToast.type === 'success' ? '#1B4332' : '#991B1B',
+                borderColor: sendToast.type === 'success' ? '#2D6A4F' : '#EF4444',
+                color: '#FFFFFF',
+                minWidth: 280
+              }}
+            >
+              {sendToast.type === 'success' ? (
+                <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#52B788' }} />
+              ) : (
+                <X className="w-4 h-4 flex-shrink-0" style={{ color: '#FCA5A5' }} />
+              )}
+              <p className="text-sm font-semibold flex-1">{sendToast.message}</p>
+              <button onClick={() => setSendToast(null)} className="ml-2 hover:opacity-70" style={{ color: '#9CA3AF' }}>
                 <X className="w-4 h-4" />
               </button>
             </motion.div>
