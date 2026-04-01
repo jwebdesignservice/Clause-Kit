@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createSigningToken } from '@/lib/signing';
+import { saveContractAsync, getContractAsync, type ContractRecord } from '@/lib/contract-store';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { contractId, resend: isResend, recipientEmail, recipientName, title } = body;
+    const { 
+      contractId, 
+      resend: isResend, 
+      recipientEmail, 
+      recipientName, 
+      title,
+      content,
+      senderName,
+      senderEmail,
+      contractType,
+    } = body;
 
     if (!contractId || !recipientEmail) {
       return NextResponse.json(
@@ -16,8 +27,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Save or update contract in server store
+    const existingContract = await getContractAsync(contractId);
+    const contractRecord: ContractRecord = existingContract ?? {
+      id: contractId,
+      contractType: contractType || 'unknown',
+      title: title || 'Contract Agreement',
+      content: content || '',
+      createdAt: new Date().toISOString(),
+      status: 'sent',
+      party1: senderName ? { name: senderName, email: senderEmail || '', address: '' } : undefined,
+      party2: { name: recipientName || '', email: recipientEmail, address: '' },
+    };
+    
+    // Update content if resending
+    if (isResend && content) {
+      contractRecord.content = content;
+    }
+    contractRecord.status = 'sent';
+    contractRecord.party2SigningToken = createSigningToken(contractId, 'party2', recipientEmail);
+    
+    await saveContractAsync(contractRecord);
+
     // Generate signing token for party2 (client)
-    const token = createSigningToken(contractId, 'party2', recipientEmail);
+    const token = contractRecord.party2SigningToken;
     
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const signingLink = `${appUrl}/sign/${contractId}?token=${token}`;

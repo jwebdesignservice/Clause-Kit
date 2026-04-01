@@ -1569,6 +1569,9 @@ export default function AppDashboard() {
           recipientName: contract.party2,
           content: contract.content,
           title: contract.title,
+          senderName: contract.party1,
+          senderEmail: contract.party1Email,
+          contractType: contract.typeId,
         }),
       })
 
