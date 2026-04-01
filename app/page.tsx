@@ -539,7 +539,7 @@ export default function HomePage() {
           <motion.div variants={fadeUp} className="relative mt-6">
             <span
               className="absolute text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap z-10"
-              style={{ backgroundColor: '#2D6A4F', top: '-14px', left: 'calc(25% + 60px)', transform: 'translateX(-50%)' }}
+              style={{ backgroundColor: '#2D6A4F', top: '-14px', left: '37%', transform: 'translateX(-50%)' }}
             >
               Best option
             </span>
