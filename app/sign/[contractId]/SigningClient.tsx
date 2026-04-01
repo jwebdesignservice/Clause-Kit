@@ -120,8 +120,39 @@ export default function SigningClient({ contractId, token, role, title, content,
             <div className="px-4 py-3 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Contract document</p>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono" style={{ color: '#1A1A1A' }}>{content}</pre>
+            <div className="p-6 lg:p-8 max-h-[70vh] overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {/* Render contract content with proper formatting */}
+              {content.split(/\n\n+/).filter(Boolean).map((block, i) => {
+                const text = block.trim()
+                // Section headings (numbered like "01. SCOPE" or caps)
+                const isHeading = /^(\d+[\.\)]\s*)?[A-Z][A-Z\s\-&]+$/.test(text.split('\n')[0]) || /^(\d+[\.\)]\s+)/.test(text)
+                // Check if it's a signature block
+                const isSig = /signature|signed|witnessed/i.test(text) && text.length < 200
+                
+                if (isHeading) {
+                  const lines = text.split('\n')
+                  const heading = lines[0]
+                  const body = lines.slice(1).join('\n').trim()
+                  return (
+                    <div key={i} className="mb-6">
+                      <h3 className="text-base font-bold mb-2" style={{ color: '#1B4332' }}>{heading}</h3>
+                      {body && <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>{body}</p>}
+                    </div>
+                  )
+                }
+                
+                if (isSig) {
+                  return (
+                    <div key={i} className="mt-8 pt-6 border-t" style={{ borderColor: '#E5E5E2' }}>
+                      <p className="text-sm whitespace-pre-wrap" style={{ color: '#6B7280' }}>{text}</p>
+                    </div>
+                  )
+                }
+                
+                return (
+                  <p key={i} className="text-sm leading-relaxed mb-4" style={{ color: '#374151' }}>{text}</p>
+                )
+              })}
             </div>
           </div>
 
@@ -166,8 +197,9 @@ export default function SigningClient({ contractId, token, role, title, content,
 
                 <div>
                   <label className="block text-xs font-semibold mb-1" style={{ color: '#1B4332' }}>Date</label>
-                  <div className="px-3 py-2.5 text-sm border" style={{ borderColor: '#E5E5E2', backgroundColor: '#F3F4F6', color: '#6B7280' }}>
-                    {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  <div className="px-3 py-2.5 text-sm border flex items-center justify-between" style={{ borderColor: '#E5E5E2', backgroundColor: '#F3F4F6', color: '#374151' }}>
+                    <span>{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span className="text-xs" style={{ color: '#9CA3AF' }}>Today</span>
                   </div>
                 </div>
 
