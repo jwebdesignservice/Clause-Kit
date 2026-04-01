@@ -18,6 +18,46 @@ interface Props {
   party1SignedAt?: string
 }
 
+// Parse contract block type (mirrors sender view)
+function parseBlock(text: string): { type: 'section' | 'party' | 'signature' | 'footer' | 'body'; heading?: string; body: string } {
+  const t = text.trim()
+  if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
+  if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
+  if (t.startsWith('PARTY 1 -') || t.startsWith('PARTY 2 -') || t.startsWith('ACCEPTANCE')) return { type: 'signature', body: t }
+  if (t.includes('Signature:') && t.includes('Full Name:')) return { type: 'signature', body: t }
+  
+  // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
+  const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
+  if (sectionMatch) return { type: 'section', heading: sectionMatch[1].trim(), body: sectionMatch[2].trim() }
+  
+  // Pure heading line (numbered or all caps)
+  if (/^\d{2}\.\s+[A-Z]/.test(t) && t.length < 80) return { type: 'section', heading: t, body: '' }
+  if (t === t.toUpperCase() && t.length > 5 && t.length < 60 && !t.startsWith('-')) return { type: 'section', heading: t, body: '' }
+  
+  return { type: 'body', body: t }
+}
+
+// Format body text (bullets, etc)
+function FormattedText({ text }: { text: string }) {
+  const lines = text.split('\n')
+  const isBulletList = lines.every(l => !l.trim() || l.trim().startsWith('-') || l.trim().startsWith('•'))
+  
+  if (isBulletList && lines.filter(l => l.trim()).length > 1) {
+    return (
+      <ul className="space-y-1.5 ml-4">
+        {lines.filter(l => l.trim()).map((line, i) => (
+          <li key={i} className="text-sm leading-relaxed flex items-start gap-2" style={{ color: '#374151' }}>
+            <span style={{ color: '#2D6A4F' }}>•</span>
+            <span>{line.replace(/^[-•]\s*/, '')}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  
+  return <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#374151' }}>{text}</p>
+}
+
 export default function SigningClient({ contractId, token, role, title, content, party1, party2, party1Signed, party1PrintedName, party1SignedAt }: Props) {
   const sigRef = useRef<SignatureCanvas>(null)
   const [signMode, setSignMode] = useState<'draw' | 'type'>('draw')
@@ -121,36 +161,45 @@ export default function SigningClient({ contractId, token, role, title, content,
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Contract document</p>
             </div>
             <div className="p-6 lg:p-8 max-h-[70vh] overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-              {/* Render contract content with proper formatting */}
               {content.split(/\n\n+/).filter(Boolean).map((block, i) => {
-                const text = block.trim()
-                // Section headings (numbered like "01. SCOPE" or caps)
-                const isHeading = /^(\d+[\.\)]\s*)?[A-Z][A-Z\s\-&]+$/.test(text.split('\n')[0]) || /^(\d+[\.\)]\s+)/.test(text)
-                // Check if it's a signature block
-                const isSig = /signature|signed|witnessed/i.test(text) && text.length < 200
+                const parsed = parseBlock(block)
                 
-                if (isHeading) {
-                  const lines = text.split('\n')
-                  const heading = lines[0]
-                  const body = lines.slice(1).join('\n').trim()
+                if (parsed.type === 'section') {
                   return (
-                    <div key={i} className="mb-6">
-                      <h3 className="text-base font-bold mb-2" style={{ color: '#1B4332' }}>{heading}</h3>
-                      {body && <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>{body}</p>}
+                    <div key={i} className="mt-8 first:mt-0">
+                      {parsed.heading && (
+                        <div className="border-b pb-2 mb-3" style={{ borderColor: '#D8F3DC' }}>
+                          <h3 className="font-bold uppercase tracking-wide" style={{ color: '#1B4332', fontSize: 18 }}>
+                            {parsed.heading}
+                          </h3>
+                        </div>
+                      )}
+                      {parsed.body && <FormattedText text={parsed.body} />}
                     </div>
                   )
                 }
                 
-                if (isSig) {
+                if (parsed.type === 'party') {
                   return (
-                    <div key={i} className="mt-8 pt-6 border-t" style={{ borderColor: '#E5E5E2' }}>
-                      <p className="text-sm whitespace-pre-wrap" style={{ color: '#6B7280' }}>{text}</p>
+                    <div key={i} className="mb-6 p-4 border-l-4" style={{ borderColor: '#2D6A4F', backgroundColor: '#FAFAF8' }}>
+                      {parsed.body.split('\n').map((line, j) => (
+                        <p key={j} className="text-sm" style={{ color: line.includes(':') ? '#1B4332' : '#374151' }}>
+                          {line}
+                        </p>
+                      ))}
                     </div>
                   )
+                }
+                
+                if (parsed.type === 'signature' || parsed.type === 'footer') {
+                  // Hide raw signature blocks — we show our own signature UI
+                  return null
                 }
                 
                 return (
-                  <p key={i} className="text-sm leading-relaxed mb-4" style={{ color: '#374151' }}>{text}</p>
+                  <div key={i} className="mb-4">
+                    <FormattedText text={parsed.body} />
+                  </div>
                 )
               })}
             </div>
