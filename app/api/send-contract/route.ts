@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // Send email via Resend
     const { error } = await resend.emails.send({
-      from: 'ClauseKit <contracts@clausekit.co.uk>',
+      from: 'ClauseKit <onboarding@resend.dev>',
       to: recipientEmail,
       subject: isResend
         ? `[Updated] Contract ready for your signature: ${title || 'Agreement'}`
