@@ -536,7 +536,7 @@ export default function HomePage() {
             </h2>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="overflow-x-auto border mt-5" style={{ borderColor: '#E5E5E2' }}>
+          <motion.div variants={fadeUp} className="overflow-x-auto overflow-y-visible border mt-6 pt-5 -mt-1" style={{ borderColor: '#E5E5E2' }}>
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
@@ -545,7 +545,7 @@ export default function HomePage() {
                   </th>
                   <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
                     <span
-                      className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap"
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap z-10"
                       style={{ backgroundColor: '#2D6A4F' }}
                     >
                       Best option

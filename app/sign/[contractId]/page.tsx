@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { verifySigningToken } from '@/lib/signing'
-import { getContract } from '@/lib/contract-store'
+import { getContractAsync } from '@/lib/contract-store'
 import SigningClient from './SigningClient'
 
 interface Props {
@@ -35,7 +35,7 @@ export default async function SignPage({ params, searchParams }: Props) {
     )
   }
 
-  const contract = getContract(contractId)
+  const contract = await getContractAsync(contractId)
   if (!contract) return notFound()
 
   if (payload.role === 'party1' && contract.party1Signature) {
