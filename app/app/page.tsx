@@ -580,11 +580,11 @@ function EditableParties({ contract, intake, onUpdate }: {
     setEditing(false)
   }
 
-  const Field = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-    <div>
-      <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#888' }}>{label}</p>
+  const renderField = (label: string, value: string, onChange: (v: string) => void, id: string) => (
+    <div key={id}>
+      <label htmlFor={id} className="text-[10px] uppercase tracking-widest mb-1 block" style={{ color: '#888' }}>{label}</label>
       {editing ? (
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} style={inputSty} />
+        <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} style={inputSty} />
       ) : (
         <p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #E5E5E2', paddingBottom: 4 }}>{value || '\u2014'}</p>
       )}
@@ -604,9 +604,9 @@ function EditableParties({ contract, intake, onUpdate }: {
           )}
         </div>
         <div className="px-4 py-3 space-y-3">
-          <Field label="Name" value={p1Name} onChange={setP1Name} />
-          <Field label="Email" value={p1Email} onChange={setP1Email} />
-          <Field label="Address" value={p1Address} onChange={setP1Address} />
+          {renderField('Name', p1Name, setP1Name, 'p1-name')}
+          {renderField('Email', p1Email, setP1Email, 'p1-email')}
+          {renderField('Address', p1Address, setP1Address, 'p1-address')}
         </div>
       </div>
 
@@ -616,10 +616,10 @@ function EditableParties({ contract, intake, onUpdate }: {
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#1B4332' }}>Client</p>
         </div>
         <div className="px-4 py-3 space-y-3">
-          <Field label="Name" value={p2Name} onChange={setP2Name} />
-          <Field label="Email" value={p2Email} onChange={setP2Email} />
-          <Field label="Address" value={p2Address} onChange={setP2Address} />
-          <Field label="Contact" value={p2Contact} onChange={setP2Contact} />
+          {renderField('Name', p2Name, setP2Name, 'p2-name')}
+          {renderField('Email', p2Email, setP2Email, 'p2-email')}
+          {renderField('Address', p2Address, setP2Address, 'p2-address')}
+          {renderField('Contact', p2Contact, setP2Contact, 'p2-contact')}
         </div>
       </div>
 
