@@ -540,7 +540,14 @@ function SignatureBlock({ party1Name, party2Name, onStateChange }: {
           </div>
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date <span style={{ color: '#EF4444' }}>*</span></p>
-            <input type="date" value={date1} onChange={(e) => setDate1(e.target.value)} className={inputCls} style={inputSty} />
+            <input 
+              type="date" 
+              value={date1} 
+              onChange={(e) => setDate1(e.target.value)} 
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} 
+              className={`${inputCls} cursor-pointer`} 
+              style={inputSty} 
+            />
           </div>
         </div>
 
