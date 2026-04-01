@@ -40,9 +40,11 @@ export async function POST(req: NextRequest) {
       party2: { name: recipientName || '', email: recipientEmail, address: '' },
     };
     
-    // Update content if resending
-    if (isResend && content) {
-      contractRecord.content = content;
+    // Update content if resending and clear old signature
+    if (isResend) {
+      if (content) contractRecord.content = content;
+      // Clear party2 signature so they can sign again
+      contractRecord.party2Signature = undefined;
     }
     contractRecord.status = 'sent';
     contractRecord.party2SigningToken = createSigningToken(contractId, 'party2', recipientEmail);
