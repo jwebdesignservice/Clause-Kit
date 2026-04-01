@@ -544,13 +544,13 @@ export default function HomePage() {
                     Feature
                   </th>
                   <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
-                    ClauseKit
                     <span
-                      className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 text-white whitespace-nowrap"
+                      className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap"
                       style={{ backgroundColor: '#2D6A4F' }}
                     >
                       Best option
                     </span>
+                    ClauseKit
                   </th>
                   <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Solicitor</th>
                   <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Template Website</th>
