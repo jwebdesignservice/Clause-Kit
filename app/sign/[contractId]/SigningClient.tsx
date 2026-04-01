@@ -119,7 +119,7 @@ export default function SigningClient({ contractId, token, role, title, content,
           </h1>
           <p className="text-sm mb-6" style={{ color: '#6B7280' }}>{result.message}</p>
           {result.status === 'completed' && (
-            <a href={`/download/${contractId}`} className="inline-flex items-center gap-2 mt-2 px-6 py-3 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
+            <a href={`/download/signed/${contractId}`} className="inline-flex items-center gap-2 mt-2 px-6 py-3 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
               Download signed contract
             </a>
           )}
@@ -138,7 +138,7 @@ export default function SigningClient({ contractId, token, role, title, content,
         <span className="text-sm" style={{ color: '#9CA3AF' }}>&mdash; Document Signing</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-5">
           <h1 className="font-display text-2xl font-bold mb-1" style={{ color: '#1B4332' }}>{title}</h1>
           <p className="text-sm" style={{ color: '#6B7280' }}>
