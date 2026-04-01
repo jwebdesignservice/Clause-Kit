@@ -58,13 +58,6 @@ export default function SignedDownloadPage({ params }: { params: { contractId: s
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16" style={{ backgroundColor: '#FAFAF8' }}>
-      {/* Header */}
-      <div className="flex items-center justify-center gap-3 px-4 py-2 text-xs font-medium w-full mb-12" style={{ backgroundColor: '#1B4332', color: '#D8F3DC' }}>
-        <span>ClauseKit</span>
-        <span style={{ color: '#52B788' }}>·</span>
-        <span className="font-bold" style={{ color: '#52B788' }}>Contract signed</span>
-      </div>
-
       <div className="w-full max-w-md">
         {/* Success card */}
         <div className="border mb-6" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}>
