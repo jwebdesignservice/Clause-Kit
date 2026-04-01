@@ -38,11 +38,12 @@ import {
   MoreHorizontal,
   Bookmark,
   Trash2,
+  Bell,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help' | 'contract-view' | 'subscription'
+type Tab = 'home' | 'new-contract' | 'my-contracts' | 'templates' | 'pricing' | 'help' | 'contract-view' | 'subscription' | 'notifications'
 // Step 1 = choose type, 2 = intake wizard, 3 = loading, 4 = preview
 type Step = 1 | 2 | 3 | 4
 
@@ -54,6 +55,16 @@ interface ContractType {
 }
 
 type ContractStatus = 'draft' | 'sent' | 'completed' | 'expired'
+
+interface Notification {
+  id: string
+  type: 'contract_signed' | 'contract_sent' | 'info'
+  title: string
+  message: string
+  contractId?: string
+  createdAt: string
+  read: boolean
+}
 
 interface SavedContract {
   id: string
@@ -93,6 +104,7 @@ const SIDEBAR_NAV: { id: Tab; label: string; Icon: React.ComponentType<{ classNa
   { id: 'templates', label: 'Templates', Icon: LayoutTemplate },
   { id: 'pricing', label: 'Pricing', Icon: CreditCard },
   { id: 'subscription', label: 'My Plan', Icon: Star },
+  { id: 'notifications', label: 'Notifications', Icon: Bell },
   { id: 'help', label: 'Help', Icon: HelpCircle },
 ]
 
@@ -104,6 +116,7 @@ const LOADING_MESSAGES = [
 ]
 
 const LS_KEY = 'clausekit_contracts'
+const LS_NOTIF_KEY = 'clausekit_notifications'
 
 function loadSaved(): SavedContract[] {
   if (typeof window === 'undefined') return []
@@ -111,6 +124,14 @@ function loadSaved(): SavedContract[] {
 }
 function persistSaved(c: SavedContract[]) {
   if (typeof window !== 'undefined') localStorage.setItem(LS_KEY, JSON.stringify(c))
+}
+
+function loadNotifications(): Notification[] {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(localStorage.getItem(LS_NOTIF_KEY) ?? '[]') } catch { return [] }
+}
+function persistNotifications(n: Notification[]) {
+  if (typeof window !== 'undefined') localStorage.setItem(LS_NOTIF_KEY, JSON.stringify(n))
 }
 
 function fmtDate(iso: string) {
@@ -1477,12 +1498,15 @@ export default function AppDashboard() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [templateToast, setTemplateToast] = useState<'saved' | 'removed' | null>(null)
   const [sendToast, setSendToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [sentModal, setSentModal] = useState<{ contractTitle: string; recipientName: string; recipientEmail: string } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [savedContracts, setSavedContracts] = useState<SavedContract[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [viewingContractId, setViewingContractId] = useState<string | null>(null)
 
   useEffect(() => { setSavedContracts(loadSaved()) }, [])
+  useEffect(() => { setNotifications(loadNotifications()) }, [])
 
   // Check subscription status
   useEffect(() => {
@@ -1562,8 +1586,31 @@ export default function AppDashboard() {
       setSavedContracts(updated)
       persistSaved(updated)
 
-      setSendToast({ type: 'success', message: resend ? 'Contract resent successfully!' : 'Contract sent to client!' })
-      setTimeout(() => setSendToast(null), 5000)
+      // Show success modal (not for resends — just a toast)
+      if (resend) {
+        setSendToast({ type: 'success', message: 'Contract resent successfully!' })
+        setTimeout(() => setSendToast(null), 5000)
+      } else {
+        setSentModal({
+          contractTitle: contract.title,
+          recipientName: contract.party2 || 'your client',
+          recipientEmail: contract.party2Email || '',
+        })
+        
+        // Add notification
+        const newNotif: Notification = {
+          id: `notif-${Date.now()}`,
+          type: 'contract_sent',
+          title: 'Contract sent',
+          message: `"${contract.title}" sent to ${contract.party2 || 'client'}`,
+          contractId,
+          createdAt: new Date().toISOString(),
+          read: true, // Already seeing the modal, so mark as read
+        }
+        const updatedNotifs = [newNotif, ...notifications]
+        setNotifications(updatedNotifs)
+        persistNotifications(updatedNotifs)
+      }
     } catch (err) {
       console.error('Send contract error:', err)
       setSendToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to send contract' })
@@ -1724,6 +1771,7 @@ export default function AppDashboard() {
           {SIDEBAR_NAV.map((item) => {
             const Icon = item.Icon
             const isActive = activeTab === item.id
+            const unreadCount = item.id === 'notifications' ? notifications.filter(n => !n.read).length : 0
             return (
               <button
                 key={item.id}
@@ -1735,7 +1783,12 @@ export default function AppDashboard() {
                 style={isActive ? { backgroundColor: '#EDFAF2', color: '#1B4332', borderLeftColor: '#2D6A4F' } : { color: '#6B7280' }}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? '#2D6A4F' : '#9CA3AF' }} />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {unreadCount > 0 && (
+                  <span className="w-5 h-5 flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: '#EF4444', borderRadius: '50%' }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -1891,6 +1944,93 @@ export default function AppDashboard() {
               <button onClick={() => setSendToast(null)} className="ml-2 hover:opacity-70" style={{ color: '#9CA3AF' }}>
                 <X className="w-4 h-4" />
               </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Contract sent success modal */}
+        <AnimatePresence>
+          {sentModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+              onClick={() => setSentModal(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="w-full max-w-md border shadow-xl"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Success header */}
+                <div className="px-6 py-5 text-center border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#D8F3DC' }}>
+                  <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: '#1B4332', borderRadius: '50%' }}>
+                    <Check className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="font-display text-xl font-bold mb-1" style={{ color: '#1B4332' }}>Contract sent!</h3>
+                  <p className="text-sm" style={{ color: '#2D6A4F' }}>Your contract is on its way</p>
+                </div>
+
+                {/* Details */}
+                <div className="px-6 py-5">
+                  <div className="border p-4 mb-4" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#1B4332' }}>{sentModal.contractTitle}</p>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: '#6B7280' }}>
+                      <span>Sent to:</span>
+                      <span className="font-medium" style={{ color: '#374151' }}>{sentModal.recipientName}</span>
+                      {sentModal.recipientEmail && (
+                        <span style={{ color: '#9CA3AF' }}>({sentModal.recipientEmail})</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-5">
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#FEF3C7', borderRadius: '50%' }}>
+                        <span className="text-xs font-bold" style={{ color: '#92400E' }}>1</span>
+                      </div>
+                      <p className="text-sm" style={{ color: '#374151' }}>
+                        <strong style={{ color: '#1B4332' }}>Pending signature</strong> — waiting for {sentModal.recipientName} to review and sign
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#E5E5E2', borderRadius: '50%' }}>
+                        <span className="text-xs font-bold" style={{ color: '#6B7280' }}>2</span>
+                      </div>
+                      <p className="text-sm" style={{ color: '#6B7280' }}>
+                        You&apos;ll be notified when they sign
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setSentModal(null)
+                        setActiveTab('my-contracts')
+                        setViewingContractId(null)
+                      }}
+                      className="flex-1 py-2.5 text-sm font-semibold text-white"
+                      style={{ backgroundColor: '#2D6A4F' }}
+                    >
+                      View sent contracts
+                    </button>
+                    <button
+                      onClick={() => setSentModal(null)}
+                      className="flex-1 py-2.5 text-sm font-medium border"
+                      style={{ borderColor: '#E5E5E2', color: '#6B7280' }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -2517,6 +2657,94 @@ export default function AppDashboard() {
                       <a href="/refunds" target="_blank" className="text-sm hover:opacity-70 transition-opacity" style={{ color: '#2D6A4F' }}>Refund Policy →</a>
                     </div>
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── NOTIFICATIONS ── */}
+            {activeTab === 'notifications' && (
+              <motion.div key="notifications" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="p-6 lg:p-8">
+                <div className="mb-6">
+                  <h1 className="font-display text-2xl font-bold mb-1" style={{ color: '#1B4332' }}>Notifications</h1>
+                  <p className="text-sm" style={{ color: '#6B7280' }}>Stay updated on your contracts and client activity.</p>
+                </div>
+
+                <div className="max-w-2xl space-y-3">
+                  {notifications.length === 0 ? (
+                    <div className="border p-8 text-center" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+                      <Bell className="w-10 h-10 mx-auto mb-3" style={{ color: '#D1D5DB' }} />
+                      <h3 className="font-semibold mb-1" style={{ color: '#374151' }}>No notifications yet</h3>
+                      <p className="text-sm" style={{ color: '#9CA3AF' }}>You&apos;ll be notified when clients sign your contracts.</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className={cn(
+                          'border p-4 flex items-start gap-4 transition-colors',
+                          !notif.read && 'border-l-4'
+                        )}
+                        style={{
+                          borderColor: notif.read ? '#E5E5E2' : '#2D6A4F',
+                          backgroundColor: notif.read ? '#FFFFFF' : '#FAFAF8',
+                          borderLeftColor: !notif.read ? '#2D6A4F' : undefined,
+                        }}
+                      >
+                        <div
+                          className="w-9 h-9 flex items-center justify-center flex-shrink-0"
+                          style={{
+                            backgroundColor: notif.type === 'contract_signed' ? '#D8F3DC' : notif.type === 'contract_sent' ? '#DBEAFE' : '#F3F4F6',
+                            borderRadius: '50%',
+                          }}
+                        >
+                          {notif.type === 'contract_signed' ? (
+                            <Check className="w-4 h-4" style={{ color: '#1B4332' }} />
+                          ) : notif.type === 'contract_sent' ? (
+                            <ArrowRight className="w-4 h-4" style={{ color: '#1E40AF' }} />
+                          ) : (
+                            <Bell className="w-4 h-4" style={{ color: '#6B7280' }} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold mb-0.5" style={{ color: '#1B4332' }}>{notif.title}</p>
+                          <p className="text-sm mb-2" style={{ color: '#6B7280' }}>{notif.message}</p>
+                          <p className="text-xs" style={{ color: '#9CA3AF' }}>{fmtDate(notif.createdAt)}</p>
+                        </div>
+                        {notif.contractId && (
+                          <button
+                            onClick={() => {
+                              setViewingContractId(notif.contractId!)
+                              setActiveTab('contract-view')
+                              // Mark as read
+                              if (!notif.read) {
+                                const updated = notifications.map(n => n.id === notif.id ? { ...n, read: true } : n)
+                                setNotifications(updated)
+                                persistNotifications(updated)
+                              }
+                            }}
+                            className="text-xs font-medium flex-shrink-0 hover:opacity-70"
+                            style={{ color: '#2D6A4F' }}
+                          >
+                            View →
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={() => {
+                        const updated = notifications.map(n => ({ ...n, read: true }))
+                        setNotifications(updated)
+                        persistNotifications(updated)
+                      }}
+                      className="text-xs font-medium hover:opacity-70"
+                      style={{ color: '#6B7280' }}
+                    >
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
