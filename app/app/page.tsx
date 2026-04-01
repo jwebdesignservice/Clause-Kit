@@ -582,10 +582,11 @@ function SignatureBlock({ party1Name, party2Name, onStateChange }: {
 
 // ── Editable party details (sidebar) ──────────────────────────────────────────
 
-function EditableParties({ contract, intake, onUpdate }: {
+function EditableParties({ contract, intake, onUpdate, onEdit }: {
   contract: SavedContract
   intake: Record<string, unknown>
   onUpdate: (c: SavedContract) => void
+  onEdit?: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [p1Name, setP1Name] = useState(contract.party1 ?? '')
@@ -605,6 +606,7 @@ function EditableParties({ contract, intake, onUpdate }: {
       updated.intakeData = { ...contract.intakeData, yourAddress: p1Address, theirAddress: p2Address, theirContactName: p2Contact }
     }
     onUpdate(updated)
+    onEdit?.()
     setEditing(false)
   }
 
@@ -912,6 +914,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
   const [editableTitle, setEditableTitle] = useState(contract.title)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [sigState, setSigState] = useState<SignatureState>({ sig1Empty: true, name1: '', date1: '' })
   const [sigError, setSigError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -1038,6 +1041,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
               const parsed = parseBlock(block)
               const updateBlock = (text: string) => {
                 const nb = [...blocks]; nb[i] = text; setEditableContent(nb.join('\n\n'))
+                setHasUnsavedChanges(true)
               }
 
               if (parsed.type === 'section') {
@@ -1117,7 +1121,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {sideTab === 'parties' && (
-            <EditableParties contract={contract} intake={intake} onUpdate={onUpdate} />
+            <EditableParties contract={contract} intake={intake} onUpdate={onUpdate} onEdit={() => setHasUnsavedChanges(true)} />
           )}
 
           {sideTab === 'details' && (
@@ -1380,30 +1384,49 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                 <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#1E40AF' }} />
                 <p className="text-xs font-medium" style={{ color: '#1E40AF' }}>Sent to {contract.party2 || 'client'} — awaiting signature</p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!senderReady) {
-                    const missing: string[] = []
-                    if (sigState.sig1Empty) missing.push('signature')
-                    if (!sigState.name1.trim()) missing.push('full name')
-                    if (!sigState.date1) missing.push('date')
-                    setSigError(`Please complete your ${missing.join(', ')} before resending.`)
-                    return
-                  }
-                  setSigError(null)
-                  setCheckoutLoading(true)
-                  await onSend(contract.id, true)
-                  setCheckoutLoading(false)
-                }}
-                disabled={checkoutLoading}
-                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                style={{ backgroundColor: '#2D6A4F' }}
-              >
-                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><RotateCcw className="w-4 h-4" /> Resend Updated Contract</>}
-              </button>
-              <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                Made changes? Resend to notify your client — no extra charge
-              </p>
+              
+              {hasUnsavedChanges ? (
+                <>
+                  <button
+                    onClick={async () => {
+                      if (!senderReady) {
+                        const missing: string[] = []
+                        if (sigState.sig1Empty) missing.push('signature')
+                        if (!sigState.name1.trim()) missing.push('full name')
+                        if (!sigState.date1) missing.push('date')
+                        setSigError(`Please complete your ${missing.join(', ')} before resending.`)
+                        return
+                      }
+                      setSigError(null)
+                      setCheckoutLoading(true)
+                      await onSend(contract.id, true)
+                      setCheckoutLoading(false)
+                      setHasUnsavedChanges(false)
+                    }}
+                    disabled={checkoutLoading}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    style={{ backgroundColor: '#2D6A4F' }}
+                  >
+                    {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><RotateCcw className="w-4 h-4" /> Resend Updated Contract</>}
+                  </button>
+                  <p className="text-xs text-center" style={{ color: '#52B788' }}>
+                    You have unsaved changes — resend to notify your client
+                  </p>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setSideTab('parties')}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
+                    style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+                  >
+                    <Pen className="w-4 h-4" /> Edit Contract
+                  </button>
+                  <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                    Edit the contract or party details, then resend
+                  </p>
+                </>
+              )}
             </div>
           ) : !session ? (
             /* Require sign-in to send contracts */
