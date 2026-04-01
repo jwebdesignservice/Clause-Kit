@@ -870,11 +870,12 @@ function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject
   )
 }
 
-function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onUpdate, session, isSubscribed }: {
+function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onUpdate, session, isSubscribed }: {
   contract: SavedContract
   onBack: () => void
   onCheckout: (id: string) => void
   onSubscribe: () => Promise<void>
+  onSend: (id: string, resend?: boolean) => Promise<void>
   onUpdate: (updated: SavedContract) => void
   session: { user?: { name?: string | null; email?: string | null } } | null
   isSubscribed: boolean
@@ -1344,6 +1345,38 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onUpdate, s
             <a href={`/download/${contract.id}`} className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: '#2D6A4F' }}>
               <Download className="w-4 h-4" /> Download PDF + Word
             </a>
+          ) : contract.status === 'sent' ? (
+            /* Already sent — allow edit and resend */
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-3 py-2 border" style={{ borderColor: '#DBEAFE', backgroundColor: '#EFF6FF' }}>
+                <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#1E40AF' }} />
+                <p className="text-xs font-medium" style={{ color: '#1E40AF' }}>Sent to {contract.party2 || 'client'} — awaiting signature</p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!senderReady) {
+                    const missing: string[] = []
+                    if (sigState.sig1Empty) missing.push('signature')
+                    if (!sigState.name1.trim()) missing.push('full name')
+                    if (!sigState.date1) missing.push('date')
+                    setSigError(`Please complete your ${missing.join(', ')} before resending.`)
+                    return
+                  }
+                  setSigError(null)
+                  setCheckoutLoading(true)
+                  await onSend(contract.id, true)
+                  setCheckoutLoading(false)
+                }}
+                disabled={checkoutLoading}
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><RotateCcw className="w-4 h-4" /> Resend Updated Contract</>}
+              </button>
+              <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                Made changes? Resend to notify your client — no extra charge
+              </p>
+            </div>
           ) : !session ? (
             /* Require sign-in to send contracts */
             <div className="text-center">
@@ -1376,13 +1409,15 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onUpdate, s
                     return
                   }
                   setSigError(null)
-                  // TODO: Mark contract as sent without payment
-                  alert('Contract sent! (Pro subscriber)')
+                  setCheckoutLoading(true)
+                  await onSend(contract.id)
+                  setCheckoutLoading(false)
                 }}
-                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                disabled={checkoutLoading}
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#2D6A4F' }}
               >
-                <ArrowRight className="w-4 h-4" /> Sign &amp; Send
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><ArrowRight className="w-4 h-4" /> Sign &amp; Send</>}
               </button>
               <div className="flex items-center justify-center gap-1.5 mt-2">
                 <div className="w-2 h-2" style={{ backgroundColor: '#52B788', borderRadius: '50%' }} />
@@ -1490,6 +1525,46 @@ export default function AppDashboard() {
       alert('Checkout failed. Please try again.')
     } finally {
       setSubLoading(false)
+    }
+  }
+
+  // Send contract to client (Pro users or after payment)
+  const handleSendContract = async (contractId: string, resend = false) => {
+    const contract = savedContracts.find(c => c.id === contractId)
+    if (!contract) return
+
+    try {
+      const res = await fetch('/api/send-contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractId,
+          resend,
+          recipientEmail: contract.party2Email,
+          recipientName: contract.party2,
+          content: contract.content,
+          title: contract.title,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to send contract')
+      }
+
+      // Update contract status to 'sent'
+      const updated = savedContracts.map(c =>
+        c.id === contractId
+          ? { ...c, status: 'sent' as const, sentAt: new Date().toISOString() }
+          : c
+      )
+      setSavedContracts(updated)
+      persistSaved(updated)
+
+      alert(resend ? 'Contract resent successfully!' : 'Contract sent successfully!')
+    } catch (err) {
+      console.error('Send contract error:', err)
+      alert(err instanceof Error ? err.message : 'Failed to send contract')
     }
   }
 
@@ -2432,6 +2507,7 @@ export default function AppDashboard() {
                     onBack={() => { setActiveTab('my-contracts'); setViewingContractId(null) }}
                     onCheckout={initiateCheckout}
                     onSubscribe={handleSubscribe}
+                    onSend={handleSendContract}
                     onUpdate={(updated) => {
                       const prev = savedContracts.find(s => s.id === updated.id)
                       const next = savedContracts.map(s => s.id === updated.id ? updated : s)
