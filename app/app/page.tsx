@@ -353,12 +353,13 @@ function renderInlineFormatting(text: string): React.ReactNode[] {
   })
 }
 
-function FormattedBody({ text, onUpdate, bodySize = 14, bodyColor = '#374151', bodyWeight = 400 }: {
+function FormattedBody({ text, onUpdate, bodySize = 14, bodyColor = '#374151', bodyWeight = 400, editable = true }: {
   text: string
-  onUpdate: (t: string) => void
+  onUpdate?: (t: string) => void
   bodySize?: number
   bodyColor?: string
   bodyWeight?: 400 | 500 | 600
+  editable?: boolean
 }) {
   const lines = text.split('\n')
 
@@ -459,10 +460,10 @@ function FormattedBody({ text, onUpdate, bodySize = 14, bodyColor = '#374151', b
   // Plain paragraph with bold support
   return (
     <div
-      contentEditable
+      contentEditable={editable}
       suppressContentEditableWarning
-      onBlur={(e) => onUpdate(e.currentTarget.textContent ?? '')}
-      className="leading-relaxed mb-3 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+      onBlur={(e) => { if (editable && onUpdate) onUpdate(e.currentTarget.textContent ?? '') }}
+      className={`leading-relaxed mb-3 outline-none px-1 -mx-1 ${editable ? 'focus:bg-[#FAFAF8]' : ''}`}
       style={{ fontSize: bodySize, color: bodyColor, fontWeight: bodyWeight, minHeight: '1.2rem' }}
     >
       {text}
@@ -915,6 +916,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
   const [editableTitle, setEditableTitle] = useState(contract.title)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(contract.status !== 'sent')
   const [sigState, setSigState] = useState<SignatureState>({ sig1Empty: true, name1: '', date1: '' })
   const [sigError, setSigError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -1005,19 +1007,36 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
             &larr; Back to dashboard
           </button>
 
+          {/* Locked banner for sent contracts */}
+          {contract.status === 'sent' && !isEditMode && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 mb-6 border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4" style={{ color: '#6B7280' }} />
+                <p className="text-sm" style={{ color: '#374151' }}>This contract has been sent and is locked for editing</p>
+              </div>
+              <button
+                onClick={() => setIsEditMode(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#2D6A4F' }}
+              >
+                <Pen className="w-3 h-3" /> Unlock & Edit
+              </button>
+            </div>
+          )}
+
           {/* Header block */}
-          <div className="border-b pb-6 mb-8" style={{ borderColor: '#E5E5E2' }}>
+          <div className={`border-b pb-6 mb-8 ${!isEditMode ? 'opacity-60 pointer-events-none select-none' : ''}`} style={{ borderColor: '#E5E5E2' }}>
             <div
-              contentEditable
+              contentEditable={isEditMode}
               suppressContentEditableWarning
-              onBlur={(e) => setEditableTitle(e.currentTarget.textContent ?? '')}
-              className="font-display text-3xl font-bold mb-2 outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+              onBlur={(e) => { if (isEditMode) setEditableTitle(e.currentTarget.textContent ?? '') }}
+              className={`font-display text-3xl font-bold mb-2 outline-none px-1 -mx-1 ${isEditMode ? 'focus:bg-[#FAFAF8]' : ''}`}
               style={{ color: '#1B4332', minHeight: '2rem' }}
             >
               {contract.title}
             </div>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>
-              {contract.typeName} &middot; Generated {new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; Click any text to edit
+              {contract.typeName} &middot; Generated {new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} &middot; {isEditMode ? 'Click any text to edit' : 'Locked'}
             </p>
           </div>
 
@@ -1029,14 +1048,18 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
           )}
 
           {/* Party info cards — at top of document */}
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <p className="text-xs" style={{ color: '#9CA3AF' }}>Edit party details in the <button onClick={() => setSideTab('parties')} className="font-semibold underline hover:opacity-70" style={{ color: '#2D6A4F' }}>Parties tab →</button></p>
+          <div className={`${!isEditMode ? 'opacity-60 pointer-events-none select-none' : ''}`}>
+            {isEditMode && (
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#9CA3AF' }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>Edit party details in the <button onClick={() => setSideTab('parties')} className="font-semibold underline hover:opacity-70" style={{ color: '#2D6A4F' }}>Parties tab →</button></p>
+              </div>
+            )}
+            <DocumentPartyHeader contract={contract} intake={intake} />
           </div>
-          <DocumentPartyHeader contract={contract} intake={intake} />
 
           {/* Document body — parsed sections */}
-          <div>
+          <div className={`${!isEditMode ? 'opacity-60 pointer-events-none select-none' : ''}`}>
             {blocks.map((block, i) => {
               const parsed = parseBlock(block)
               const updateBlock = (text: string) => {
@@ -1051,10 +1074,10 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                     {parsed.heading && (
                       <div className="border-b pb-2 mb-3" style={{ borderColor: '#D8F3DC' }}>
                         <div
-                          contentEditable
+                          contentEditable={isEditMode}
                           suppressContentEditableWarning
-                          onBlur={(e) => updateBlock(`${e.currentTarget.textContent ?? ''}\n${parsed.body}`)}
-                          className="font-bold uppercase tracking-wide outline-none focus:bg-[#FAFAF8] px-1 -mx-1"
+                          onBlur={(e) => { if (isEditMode) updateBlock(`${e.currentTarget.textContent ?? ''}\n${parsed.body}`) }}
+                          className={`font-bold uppercase tracking-wide outline-none px-1 -mx-1 ${isEditMode ? 'focus:bg-[#FAFAF8]' : ''}`}
                           style={{ color: docHeadingColor, fontSize: docHeadingSize, fontWeight: docHeadingWeight }}
                         >
                           {parsed.heading}
@@ -1063,7 +1086,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                     )}
                     {/* Section body — normal weight, below heading */}
                     {parsed.body && (
-                      <FormattedBody text={parsed.body} onUpdate={(newBody) => updateBlock(`${parsed.heading ?? ''}\n${newBody}`)} bodySize={docBodySize} bodyColor={docBodyColor} bodyWeight={docFontWeight} />
+                      <FormattedBody text={parsed.body} onUpdate={isEditMode ? (newBody) => updateBlock(`${parsed.heading ?? ''}\n${newBody}`) : undefined} bodySize={docBodySize} bodyColor={docBodyColor} bodyWeight={docFontWeight} editable={isEditMode} />
                     )}
                   </div>
                 )
@@ -1385,7 +1408,22 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                 <p className="text-xs font-medium" style={{ color: '#1E40AF' }}>Sent to {contract.party2 || 'client'} — awaiting signature</p>
               </div>
               
-              {hasUnsavedChanges ? (
+              {!isEditMode ? (
+                /* Locked state — show unlock button */
+                <>
+                  <button
+                    onClick={() => setIsEditMode(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
+                    style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+                  >
+                    <Pen className="w-4 h-4" /> Edit Contract
+                  </button>
+                  <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                    Unlock to make changes, then resend to your client
+                  </p>
+                </>
+              ) : hasUnsavedChanges ? (
+                /* Unlocked with changes — show resend button */
                 <>
                   <button
                     onClick={async () => {
@@ -1402,29 +1440,36 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                       await onSend(contract.id, true)
                       setCheckoutLoading(false)
                       setHasUnsavedChanges(false)
+                      setIsEditMode(false)
                     }}
                     disabled={checkoutLoading}
                     className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                     style={{ backgroundColor: '#2D6A4F' }}
                   >
-                    {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><RotateCcw className="w-4 h-4" /> Resend Updated Contract</>}
+                    {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending&hellip;</> : <><RotateCcw className="w-4 h-4" /> Save & Resend Contract</>}
                   </button>
-                  <p className="text-xs text-center" style={{ color: '#52B788' }}>
-                    You have unsaved changes — resend to notify your client
-                  </p>
+                  <button
+                    onClick={() => { setIsEditMode(false); setHasUnsavedChanges(false) }}
+                    className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium transition-opacity hover:opacity-70"
+                    style={{ color: '#6B7280' }}
+                  >
+                    Cancel changes
+                  </button>
                 </>
               ) : (
+                /* Unlocked but no changes yet */
                 <>
+                  <div className="flex items-center gap-2 px-3 py-2 border" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5' }}>
+                    <Pen className="w-4 h-4 flex-shrink-0" style={{ color: '#065F46' }} />
+                    <p className="text-xs font-medium" style={{ color: '#065F46' }}>Edit mode — make your changes above</p>
+                  </div>
                   <button
-                    onClick={() => setSideTab('parties')}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold border-2 transition-colors hover:bg-[#D8F3DC]"
-                    style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+                    onClick={() => setIsEditMode(false)}
+                    className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium transition-opacity hover:opacity-70"
+                    style={{ color: '#6B7280' }}
                   >
-                    <Pen className="w-4 h-4" /> Edit Contract
+                    Cancel editing
                   </button>
-                  <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                    Edit the contract or party details, then resend
-                  </p>
                 </>
               )}
             </div>
