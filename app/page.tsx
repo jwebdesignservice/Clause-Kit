@@ -536,20 +536,21 @@ export default function HomePage() {
             </h2>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="overflow-x-auto overflow-y-visible border mt-6 pt-5 -mt-1" style={{ borderColor: '#E5E5E2' }}>
+          <motion.div variants={fadeUp} className="relative mt-6">
+            <span
+              className="absolute -top-3 left-1/2 ml-[-60px] text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap z-10"
+              style={{ backgroundColor: '#2D6A4F' }}
+            >
+              Best option
+            </span>
+            <div className="overflow-x-auto border" style={{ borderColor: '#E5E5E2' }}>
             <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#E5E5E2' }}>
                   <th className="text-left px-5 py-3.5 text-sm font-semibold" style={{ color: '#1B4332', backgroundColor: '#F0FDF4' }}>
                     Feature
                   </th>
-                  <th className="px-5 py-3.5 text-center font-semibold relative" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
-                    <span
-                      className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-1 text-white whitespace-nowrap z-10"
-                      style={{ backgroundColor: '#2D6A4F' }}
-                    >
-                      Best option
-                    </span>
+                  <th className="px-5 py-3.5 text-center font-semibold" style={{ backgroundColor: '#D8F3DC', color: '#1B4332' }}>
                     ClauseKit
                   </th>
                   <th className="px-5 py-3.5 text-center font-medium" style={{ backgroundColor: '#F0FDF4', color: '#6B7280' }}>Solicitor</th>
@@ -591,6 +592,7 @@ export default function HomePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </motion.div>
 
           <motion.p variants={fadeUp} className="text-center text-sm mt-6" style={{ color: '#6B7280' }}>
