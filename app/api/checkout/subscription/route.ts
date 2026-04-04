@@ -9,10 +9,7 @@ export async function POST(req: NextRequest) {
     // Create Stripe instance directly to avoid proxy issues
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey || !stripeKey.startsWith('sk_')) {
-      return NextResponse.json({ 
-        error: 'Stripe not configured', 
-        detail: `Key present: ${!!stripeKey}, starts with sk_: ${stripeKey?.startsWith('sk_')}` 
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
     }
     
     const stripe = new Stripe(stripeKey);

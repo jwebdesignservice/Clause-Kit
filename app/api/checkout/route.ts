@@ -12,10 +12,7 @@ export async function POST(req: NextRequest) {
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey || !stripeKey.startsWith('sk_')) {
-      return NextResponse.json({ 
-        error: 'Stripe not configured', 
-        detail: `Key present: ${!!stripeKey}` 
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
     }
     
     const stripe = new Stripe(stripeKey);
