@@ -58,7 +58,4 @@ export function markPaid(sessionId: string): void {
   }
 }
 
-// Subscription status stub - to be implemented with Stripe subscriptions
-export function setSubscriptionStatus(customerId: string, subscriptionId: string, status: string): void {
-  console.log('setSubscriptionStatus stub:', customerId, subscriptionId, status)
-}
+
