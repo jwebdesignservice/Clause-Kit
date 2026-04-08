@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) throw new Error('JWT_SECRET env var is not set')
+// Lazy — only checked when signing functions are called at runtime
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) throw new Error('JWT_SECRET env var is not set')
+  return secret
+}
 const EXPIRY_DAYS = 7
 
 export interface SigningTokenPayload {
@@ -15,14 +19,14 @@ export interface SigningTokenPayload {
 export function createSigningToken(contractId: string, role: 'party1' | 'party2', email: string): string {
   return jwt.sign(
     { contractId, role, email },
-    JWT_SECRET as string,
+    getJwtSecret(),
     { expiresIn: `${EXPIRY_DAYS}d` }
   )
 }
 
 export function verifySigningToken(token: string): SigningTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET as string) as SigningTokenPayload
+    return jwt.verify(token, getJwtSecret()) as SigningTokenPayload
   } catch {
     return null
   }
