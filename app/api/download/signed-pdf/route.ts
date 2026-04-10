@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
     }
   }
   
+  // Sanitize all text fields — pdf-lib standard fonts only support latin-1
+  const s = (str: string) => str.replace(/[^\x00-\xFF]/g, '?')
+
   // Draw header bar
   currentPage.drawRectangle({
     x: 0,
@@ -75,7 +78,7 @@ export async function GET(req: NextRequest) {
   y = pageHeight - 70
   
   // Title
-  currentPage.drawText(contract.title, {
+  currentPage.drawText(s(contract.title), {
     x: margin,
     y,
     size: 20,
@@ -92,7 +95,7 @@ export async function GET(req: NextRequest) {
     height: 20,
     color: rgb(0.847, 0.953, 0.863), // #D8F3DC
   })
-  currentPage.drawText('✓ Fully Executed', {
+  currentPage.drawText('FULLY EXECUTED', {
     x: margin + 8,
     y: y,
     size: 10,
@@ -102,7 +105,9 @@ export async function GET(req: NextRequest) {
   y -= 40
   
   // Contract content
-  const lines = contract.content.split('\n')
+  // Strip non-latin characters that crash Helvetica (pdf-lib standard fonts are latin-1 only)
+  const sanitize = (str: string) => str.replace(/[^\x00-\xFF]/g, '?')
+  const lines = sanitize(contract.content).split('\n')
   
   for (const line of lines) {
     const trimmed = line.trim()
@@ -202,7 +207,7 @@ export async function GET(req: NextRequest) {
     borderWidth: 1,
   })
   
-  currentPage.drawText(`PARTY 1 — ${contract.party1?.name || 'Provider'}`, {
+  currentPage.drawText(s(`PARTY 1 — ${contract.party1?.name || 'Provider'}`), {
     x: margin + 10,
     y: y - 15,
     size: 9,
@@ -210,7 +215,7 @@ export async function GET(req: NextRequest) {
     color: darkGreen,
   })
   
-  currentPage.drawText(`Signed by: ${party1Sig?.printedName || 'N/A'}`, {
+  currentPage.drawText(s(`Signed by: ${party1Sig?.printedName || 'N/A'}`), {
     x: margin + 10,
     y: y - 30,
     size: 9,
@@ -245,7 +250,7 @@ export async function GET(req: NextRequest) {
     borderWidth: 1,
   })
   
-  currentPage.drawText(`PARTY 2 — ${contract.party2?.name || 'Client'}`, {
+  currentPage.drawText(s(`PARTY 2 — ${contract.party2?.name || 'Client'}`), {
     x: party2X + 10,
     y: y - 15,
     size: 9,
