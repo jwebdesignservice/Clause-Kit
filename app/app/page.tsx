@@ -713,7 +713,8 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
 
 // ── Fixed vertical format toolbar (left of document, right of sidebar) ────────
 
-function FloatingFormatToolbar({ containerRef: _containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const exec = (cmd: string, value?: string) => {
     document.execCommand(cmd, false, value ?? undefined)
   }
