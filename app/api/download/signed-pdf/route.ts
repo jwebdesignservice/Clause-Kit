@@ -113,20 +113,29 @@ export async function GET(req: NextRequest) {
   let sigContext: 'party1' | 'party2' | null = null
   const processedLines = contract.content.split('\n').map(line => {
     const t = line.trim()
-    if (/party\s*1/i.test(t)) sigContext = 'party1'
-    else if (/party\s*2/i.test(t)) sigContext = 'party2'
+    // Update party context and normalise the party header line to use real names
+    if (/party\s*1/i.test(t)) {
+      sigContext = 'party1'
+      if (contract.party1?.name) return line.replace(/PARTY\s*1\s*[-—–]\s*.+/i, `PARTY 1 - ${contract.party1.name}`)
+    } else if (/party\s*2/i.test(t)) {
+      sigContext = 'party2'
+      if (contract.party2?.name) return line.replace(/PARTY\s*2\s*[-—–]\s*.+/i, `PARTY 2 - ${contract.party2.name}`)
+    }
 
     const sig = sigContext === 'party1' ? party1Sig : sigContext === 'party2' ? party2Sig : null
     const name = sigContext === 'party1' ? (contract.party1?.name || '') : (contract.party2?.name || '')
+    // For party1 who never signs via a token, fall back to contract record data
+    const effectiveName = sig?.printedName || name
+    const effectiveDate = sig?.signedAt || (sigContext === 'party1' ? contract.createdAt : null)
 
-    if (/^Signature\s*:/i.test(t) && /_+/.test(t) && sig) {
-      return `Signature: [Digitally signed by ${sig.printedName || name}]`
+    if (/^Signature\s*:/i.test(t) && /_+/.test(t) && effectiveName) {
+      return `Signature: [Digitally signed by ${effectiveName}]`
     }
-    if (/^Full Name\s*:/i.test(t) && /_+/.test(t) && sig) {
-      return `Full Name: ${sig.printedName || name}`
+    if (/^Full Name\s*:/i.test(t) && /_+/.test(t) && effectiveName) {
+      return `Full Name: ${effectiveName}`
     }
-    if (/^Date\s*:/i.test(t) && /_+/.test(t) && sig) {
-      return `Date: ${formatDate(sig.signedAt)}`
+    if (/^Date\s*:/i.test(t) && /_+/.test(t) && effectiveDate) {
+      return `Date: ${formatDate(effectiveDate)}`
     }
     return line
   })
