@@ -106,8 +106,32 @@ export async function GET(req: NextRequest) {
   
   // Contract content
   // Strip non-latin characters that crash Helvetica (pdf-lib standard fonts are latin-1 only)
-  const sanitize = (str: string) => str.replace(/[^\x00-\xFF]/g, '?')
-  const lines = sanitize(contract.content).split('\n')
+  const sanitize = (str: string) => str.replace(/[^\x00-\xFF]/g, '-')
+
+  // Pre-process content: fill in signature placeholder lines with real data
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  let sigContext: 'party1' | 'party2' | null = null
+  const processedLines = contract.content.split('\n').map(line => {
+    const t = line.trim()
+    if (/party\s*1/i.test(t)) sigContext = 'party1'
+    else if (/party\s*2/i.test(t)) sigContext = 'party2'
+
+    const sig = sigContext === 'party1' ? party1Sig : sigContext === 'party2' ? party2Sig : null
+    const name = sigContext === 'party1' ? (contract.party1?.name || '') : (contract.party2?.name || '')
+
+    if (/^Signature\s*:/i.test(t) && /_+/.test(t) && sig) {
+      return `Signature: [Digitally signed by ${sig.printedName || name}]`
+    }
+    if (/^Full Name\s*:/i.test(t) && /_+/.test(t) && sig) {
+      return `Full Name: ${sig.printedName || name}`
+    }
+    if (/^Date\s*:/i.test(t) && /_+/.test(t) && sig) {
+      return `Date: ${formatDate(sig.signedAt)}`
+    }
+    return line
+  })
+
+  const lines = sanitize(processedLines.join('\n')).split('\n')
   
   for (const line of lines) {
     const trimmed = line.trim()
