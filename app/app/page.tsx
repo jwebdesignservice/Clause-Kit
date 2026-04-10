@@ -711,9 +711,9 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
 
 // ── Floating selection toolbar ───────────────────────────────────────────────
 
-// ── Floating draggable format toolbar ─────────────────────────────────────────
+// ── Fixed vertical format toolbar (left of document, right of sidebar) ────────
 
-function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
+function FloatingFormatToolbar({ containerRef: _containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   const exec = (cmd: string, value?: string) => {
     document.execCommand(cmd, false, value ?? undefined)
   }
@@ -722,25 +722,7 @@ function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject
   const [isItalic, setIsItalic] = useState(false)
   const [isUnderline, setIsUnderline] = useState(false)
   const [textColor, setTextColor] = useState('#374151')
-  
-  // Dragging state
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const dragOffset = useRef({ x: 0, y: 0 })
-  const toolbarRef = useRef<HTMLDivElement>(null)
 
-  // Set initial position above the contract (centered horizontally)
-  useEffect(() => {
-    if (containerRef.current && !position) {
-      const containerRect = containerRef.current.getBoundingClientRect()
-      setPosition({
-        x: containerRect.left + (containerRect.width / 2) - 175, // center (toolbar ~350px wide)
-        y: containerRect.top + 80, // below header
-      })
-    }
-  }, [containerRef, position])
-
-  // Update active state on selection change
   useEffect(() => {
     const update = () => {
       setIsBold(document.queryCommandState('bold'))
@@ -751,151 +733,83 @@ function FloatingFormatToolbar({ containerRef }: { containerRef: React.RefObject
     return () => document.removeEventListener('selectionchange', update)
   }, [])
 
-  // Drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button, input, label')) return
-    e.preventDefault()
-    setIsDragging(true)
-    const rect = toolbarRef.current?.getBoundingClientRect()
-    if (rect) {
-      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-    }
-  }
-
-  useEffect(() => {
-    if (!isDragging) return
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      })
-    }
-    
-    const handleMouseUp = () => {
-      setIsDragging(false)
-    }
-    
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging])
-
-  const btnBase = "flex items-center justify-center w-8 h-8 text-xs font-bold border transition-colors"
+  const btn = "flex items-center justify-center w-9 h-9 text-xs font-bold border transition-colors"
   const active = { backgroundColor: '#1B4332', color: '#FFFFFF', borderColor: '#1B4332' }
   const inactive = { backgroundColor: '#FFFFFF', color: '#374151', borderColor: '#E5E5E2' }
 
-  if (!position) return null
-
   return (
     <div
-      ref={toolbarRef}
-      onMouseDown={handleMouseDown}
-      className="fixed z-50 shadow-lg border"
+      className="fixed z-40 flex flex-col border-r border-b shadow-sm"
       style={{
-        left: position.x,
-        top: position.y,
-        borderColor: '#1B4332',
+        left: 220,   // flush right of the 220px sidebar
+        top: 48,     // below the top bar
+        bottom: 0,
+        width: 48,
         backgroundColor: '#FFFFFF',
-        cursor: isDragging ? 'grabbing' : 'grab',
-        userSelect: 'none',
+        borderColor: '#E5E5E2',
       }}
     >
-      {/* Drag handle bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#1B4332' }}>
-        <div className="flex items-center gap-2">
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#D8F3DC' }}>
-            <circle cx="5" cy="6" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="6" r="1.5" fill="currentColor" />
-            <circle cx="19" cy="6" r="1.5" fill="currentColor" />
-            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-          </svg>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#D8F3DC' }}>Text formatting</p>
-        </div>
+      {/* Header label — rotated to read top-to-bottom */}
+      <div
+        className="flex items-center justify-center flex-shrink-0 border-b"
+        style={{ height: 80, backgroundColor: '#1B4332', borderColor: '#E5E5E2' }}
+      >
+        <p
+          className="text-[9px] font-bold uppercase tracking-widest"
+          style={{ color: '#D8F3DC', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+        >
+          Format
+        </p>
       </div>
-      
-      <div className="px-3 py-2">
-        <div className="flex items-center gap-1 flex-wrap">
-          {/* Bold */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('bold') }}
-            className={btnBase}
-            style={isBold ? active : inactive}
-            title="Bold"
-          >B</button>
 
-          {/* Italic */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('italic') }}
-            className={`${btnBase} italic`}
-            style={isItalic ? active : inactive}
-            title="Italic"
-          >I</button>
+      {/* Buttons — stacked vertically */}
+      <div className="flex flex-col items-center gap-1 py-3 px-1.5 flex-1 overflow-y-auto">
+        <button onMouseDown={(e) => { e.preventDefault(); exec('bold') }} className={btn} style={isBold ? active : inactive} title="Bold">B</button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('italic') }} className={`${btn} italic`} style={isItalic ? active : inactive} title="Italic">I</button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('underline') }} className={`${btn} underline`} style={isUnderline ? active : inactive} title="Underline">U</button>
 
-          {/* Underline */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('underline') }}
-            className={`${btnBase} underline`}
-            style={isUnderline ? active : inactive}
-            title="Underline"
-          >U</button>
+        <div className="w-6 h-px my-1" style={{ backgroundColor: '#E5E5E2' }} />
 
-          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
+        <button onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '2') }} className={btn} style={inactive} title="Smaller text">
+          <span style={{ fontSize: 9 }}>A−</span>
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); exec('fontSize', '4') }} className={btn} style={inactive} title="Larger text">
+          <span style={{ fontSize: 13 }}>A+</span>
+        </button>
 
-          {/* Font smaller */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('fontSize', '2') }}
-            className={btnBase}
-            style={inactive}
-            title="Smaller text"
-          ><span style={{ fontSize: 10 }}>A−</span></button>
+        <div className="w-6 h-px my-1" style={{ backgroundColor: '#E5E5E2' }} />
 
-          {/* Font larger */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); exec('fontSize', '4') }}
-            className={btnBase}
-            style={inactive}
-            title="Larger text"
-          ><span style={{ fontSize: 14 }}>A+</span></button>
+        {/* Text colour */}
+        <label
+          className="relative flex items-center justify-center w-9 h-9 border cursor-pointer"
+          style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }}
+          title="Text colour"
+        >
+          <span className="text-xs font-bold" style={{ color: textColor }}>A</span>
+          <div className="absolute bottom-1 left-1 right-1 h-1" style={{ backgroundColor: textColor }} />
+          <input
+            type="color"
+            value={textColor}
+            onChange={(e) => { setTextColor(e.target.value); exec('foreColor', e.target.value) }}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          />
+        </label>
 
-          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
+        <div className="w-6 h-px my-1" style={{ backgroundColor: '#E5E5E2' }} />
 
-          {/* Text colour */}
-          <label 
-            className="relative flex items-center justify-center w-8 h-8 border cursor-pointer" 
-            style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF' }} 
-            title="Text colour"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <span className="text-xs font-bold" style={{ color: textColor }}>A</span>
-            <div className="absolute bottom-1 left-1 right-1 h-1" style={{ backgroundColor: textColor }} />
-            <input
-              type="color"
-              value={textColor}
-              onChange={(e) => {
-                setTextColor(e.target.value)
-                exec('foreColor', e.target.value)
-              }}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            />
-          </label>
+        <button onMouseDown={(e) => { e.preventDefault(); document.execCommand('removeFormat', false) }} className={btn} style={inactive} title="Clear formatting">
+          <span style={{ fontSize: 11 }}>✕</span>
+        </button>
+      </div>
 
-          <div className="w-px h-6 mx-0.5" style={{ backgroundColor: '#E5E5E2' }} />
-
-          {/* Clear formatting */}
-          <button
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false) }}
-            className={btnBase}
-            style={inactive}
-            title="Clear formatting"
-          >✕</button>
-        </div>
-        <p className="text-[10px] mt-2" style={{ color: '#9CA3AF' }}>Select text then click a format · Drag to move</p>
+      {/* Hint at bottom */}
+      <div className="flex-shrink-0 border-t px-1 py-2" style={{ borderColor: '#E5E5E2' }}>
+        <p
+          className="text-[8px] text-center leading-tight"
+          style={{ color: '#9CA3AF', writingMode: 'vertical-rl', transform: 'rotate(180deg)', margin: '0 auto' }}
+        >
+          Select text
+        </p>
       </div>
     </div>
   )
@@ -1000,7 +914,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
       <FloatingFormatToolbar containerRef={documentContainerRef} />
       
       {/* ── Left: Editable Document ── */}
-      <div ref={documentContainerRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont }}>
+      <div ref={documentContainerRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont, paddingLeft: 48 }}>
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
