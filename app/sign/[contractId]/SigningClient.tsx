@@ -191,8 +191,28 @@ export default function SigningClient({ contractId, token, role, title, content,
                   )
                 }
                 
-                if (parsed.type === 'signature' || parsed.type === 'footer') {
-                  // Hide raw signature blocks — we show our own signature UI
+                if (parsed.type === 'footer') return null
+
+                if (parsed.type === 'signature') {
+                  const isParty1Block = parsed.body.includes('PARTY 1') || (!parsed.body.includes('PARTY 2') && i < content.split(/\n\n+/).length / 2)
+                  const isParty2Block = parsed.body.includes('PARTY 2')
+
+                  // Show party 1's signed details if they've signed
+                  if (isParty1Block && party1Signed) {
+                    return (
+                      <div key={i} className="mt-6 mb-4 p-4 border-l-4" style={{ borderColor: '#2D6A4F', backgroundColor: '#EDFAF2' }}>
+                        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 1 — Signed</p>
+                        <p className="text-sm" style={{ color: '#374151' }}>Signature: <span className="italic">[Digitally signed]</span></p>
+                        <p className="text-sm" style={{ color: '#374151' }}>Full Name: {party1PrintedName ?? party1?.name ?? '—'}</p>
+                        <p className="text-sm" style={{ color: '#374151' }}>Date: {party1SignedAt ? new Date(party1SignedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+                      </div>
+                    )
+                  }
+
+                  // Hide party 2's block — they sign via the sidebar UI
+                  if (isParty2Block) return null
+
+                  // Hide unsigned party 1 block too (no data to show)
                   return null
                 }
                 
