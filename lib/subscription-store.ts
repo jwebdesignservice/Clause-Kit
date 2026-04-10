@@ -111,6 +111,10 @@ export async function setSubscriptionAsync(record: SubscriptionRecord): Promise<
 }
 
 export async function hasActiveSubscriptionAsync(userId: string): Promise<boolean> {
+  // Owner accounts always have pro access — no Stripe required
+  const ownerEmails = (process.env.OWNER_EMAIL ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+  if (ownerEmails.includes(userId.toLowerCase())) return true
+
   const sub = await getSubscriptionAsync(userId)
   return sub?.status === 'active'
 }
@@ -160,6 +164,8 @@ export function setSubscription(record: SubscriptionRecord): void {
 }
 
 export function hasActiveSubscription(userId: string): boolean {
+  const ownerEmails = (process.env.OWNER_EMAIL ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+  if (ownerEmails.includes(userId.toLowerCase())) return true
   if (USE_KV) return false // caller must use async version in production
   const sub = readStore().subscriptions[userId]
   return sub?.status === 'active'
