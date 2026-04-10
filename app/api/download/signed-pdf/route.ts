@@ -22,321 +22,337 @@ export async function GET(req: NextRequest) {
   const party1Sig = contract.party1Signature
   const party2Sig = contract.party2Signature
 
-  // Create PDF
+  // pdf-lib Helvetica is latin-1 only — strip anything outside that range
+  const s = (str: string) => str.replace(/[^\x00-\xFF]/g, '-')
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
   const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const font     = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-  
+
   const darkGreen = rgb(0.106, 0.263, 0.196) // #1B4332
-  const midGreen = rgb(0.176, 0.416, 0.310)  // #2D6A4F
-  const gray = rgb(0.216, 0.255, 0.318)      // #374151
+  const midGreen  = rgb(0.176, 0.416, 0.310) // #2D6A4F
+  const gray      = rgb(0.216, 0.255, 0.318) // #374151
   const lightGray = rgb(0.612, 0.639, 0.686) // #9CA3AF
-  
-  const pageWidth = 595 // A4 width in points
-  const pageHeight = 842 // A4 height in points
-  const margin = 50
-  const contentWidth = pageWidth - (margin * 2)
-  
-  let currentPage = pdfDoc.addPage([pageWidth, pageHeight])
+  const paleGreen = rgb(0.847, 0.953, 0.863) // #D8F3DC
+  const borderGray = rgb(0.898, 0.898, 0.886) // #E5E5E2
+
+  const pageWidth    = 595
+  const pageHeight   = 842
+  const margin       = 50
+  const contentWidth = pageWidth - margin * 2
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight])
   let y = pageHeight - margin
-  
-  const addNewPageIfNeeded = (neededSpace: number) => {
-    if (y - neededSpace < margin) {
-      currentPage = pdfDoc.addPage([pageWidth, pageHeight])
-      y = pageHeight - margin
+
+  const newPage = () => {
+    page = pdfDoc.addPage([pageWidth, pageHeight])
+    y = pageHeight - margin
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < margin + 20) newPage()
+  }
+
+  // Draw wrapped text, advancing y. Returns nothing (mutates y).
+  const drawWrapped = (
+    text: string,
+    opts: {
+      x?: number
+      size?: number
+      bold?: boolean
+      color?: ReturnType<typeof rgb>
+      maxWidth?: number
+      lineHeight?: number
+    } = {}
+  ) => {
+    const {
+      x = margin,
+      size = 10,
+      bold = false,
+      color = gray,
+      maxWidth = contentWidth - (x - margin),
+      lineHeight = Math.ceil(size * 1.55),
+    } = opts
+    const f = bold ? fontBold : font
+    const words = s(text).split(' ').filter(Boolean)
+    let line = ''
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word
+      if (f.widthOfTextAtSize(test, size) > maxWidth && line) {
+        ensureSpace(lineHeight)
+        page.drawText(line, { x, y, size, font: f, color })
+        y -= lineHeight
+        line = word
+      } else {
+        line = test
+      }
+    }
+    if (line) {
+      ensureSpace(lineHeight)
+      page.drawText(line, { x, y, size, font: f, color })
+      y -= lineHeight
     }
   }
-  
-  // Sanitize all text fields — pdf-lib standard fonts only support latin-1
-  const s = (str: string) => str.replace(/[^\x00-\xFF]/g, '?')
 
-  // Draw header bar
-  currentPage.drawRectangle({
-    x: 0,
-    y: pageHeight - 40,
-    width: pageWidth,
-    height: 40,
-    color: darkGreen,
-  })
-  
-  currentPage.drawText('ClauseKit', {
-    x: margin,
-    y: pageHeight - 28,
-    size: 14,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  })
-  
-  currentPage.drawText('SIGNED CONTRACT', {
-    x: pageWidth - margin - 100,
-    y: pageHeight - 28,
+  // ── Block parser — mirrors the website's parseBlock exactly ─────────────────
+  const parseBlock = (text: string): {
+    type: 'section' | 'party' | 'signature' | 'footer' | 'body'
+    heading?: string
+    body: string
+  } => {
+    const t = text.trim()
+    if (t.startsWith('---') || t.startsWith('This document was generated'))
+      return { type: 'footer', body: t }
+    if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:')))
+      return { type: 'party', body: t }
+    if (/^PARTY\s*[12]\s*[-—–]/i.test(t))
+      return { type: 'signature', body: t }
+    if (
+      t.startsWith('ACCEPTANCE') ||
+      (t.includes('Signature:') && t.includes('___')) ||
+      (t.includes('___') && (t.includes('Full Name') || t.includes('Date:')))
+    )
+      return { type: 'signature', body: t }
+    if (t.includes('Signature:') && t.includes('Full Name:'))
+      return { type: 'signature', body: t }
+
+    const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
+    if (sectionMatch)
+      return { type: 'section', heading: sectionMatch[1].trim(), body: sectionMatch[2].trim() }
+    if (/^\d{2}\.\s+[A-Z]/.test(t) && t.length < 80)
+      return { type: 'section', heading: t, body: '' }
+    if (t === t.toUpperCase() && t.length > 5 && t.length < 60 && !t.startsWith('-'))
+      return { type: 'section', heading: t, body: '' }
+
+    return { type: 'body', body: t }
+  }
+
+  // Render body text: handles bullets and sub-headings (matching FormattedBody on site)
+  const renderBody = (text: string) => {
+    for (const rawLine of text.split('\n')) {
+      const t = rawLine.trim()
+      if (!t) { y -= 5; continue }
+
+      // Bullet
+      if (t.startsWith('-') || t.startsWith('•')) {
+        const content = t.replace(/^[-•]\s*/, '')
+        ensureSpace(15)
+        page.drawText('•', { x: margin + 8, y, size: 10, font, color: midGreen })
+        drawWrapped(content, { x: margin + 20, size: 10, maxWidth: contentWidth - 20 })
+        continue
+      }
+
+      // Sub-heading (short line ending in colon that isn't a field label)
+      if (
+        t.endsWith(':') &&
+        t.length < 60 &&
+        !/^(Signature|Full Name|Date|Email|Address|Name)\s*:/i.test(t)
+      ) {
+        ensureSpace(16)
+        drawWrapped(t, { size: 10, bold: true, color: darkGreen })
+        continue
+      }
+
+      drawWrapped(t, { size: 10, color: gray })
+    }
+  }
+
+  // ── 1. Header bar ────────────────────────────────────────────────────────────
+  page.drawRectangle({ x: 0, y: pageHeight - 40, width: pageWidth, height: 40, color: darkGreen })
+  page.drawText('ClauseKit', { x: margin, y: pageHeight - 27, size: 14, font: fontBold, color: rgb(1, 1, 1) })
+  page.drawText('SIGNED CONTRACT', {
+    x: pageWidth - margin - 108,
+    y: pageHeight - 27,
     size: 10,
     font: fontBold,
-    color: rgb(0.322, 0.718, 0.545), // #52B788
+    color: rgb(0.322, 0.718, 0.545),
   })
-  
-  y = pageHeight - 70
-  
-  // Title
-  currentPage.drawText(s(contract.title), {
-    x: margin,
-    y,
-    size: 20,
-    font: fontBold,
-    color: darkGreen,
-  })
-  y -= 30
-  
+  y = pageHeight - 65
+
+  // ── 2. Title ─────────────────────────────────────────────────────────────────
+  drawWrapped(contract.title, { size: 22, bold: true, color: darkGreen })
+  y -= 2
+  const subtitle = [contract.contractType, contract.createdAt ? `Generated ${fmtDate(contract.createdAt)}` : ''].filter(Boolean).join(' · ')
+  if (subtitle) drawWrapped(subtitle, { size: 9, color: lightGray })
+  y -= 6
+
   // Status badge
-  currentPage.drawRectangle({
-    x: margin,
-    y: y - 4,
-    width: 120,
-    height: 20,
-    color: rgb(0.847, 0.953, 0.863), // #D8F3DC
-  })
-  currentPage.drawText('FULLY EXECUTED', {
-    x: margin + 8,
-    y: y,
-    size: 10,
-    font: fontBold,
-    color: midGreen,
-  })
-  y -= 40
-  
-  // Contract content
-  // Strip non-latin characters that crash Helvetica (pdf-lib standard fonts are latin-1 only)
-  const sanitize = (str: string) => str.replace(/[^\x00-\xFF]/g, '-')
+  page.drawRectangle({ x: margin, y: y - 5, width: 115, height: 18, color: paleGreen })
+  page.drawText('FULLY EXECUTED', { x: margin + 8, y: y - 1, size: 9, font: fontBold, color: midGreen })
+  y -= 30
 
-  // Pre-process content: fill in signature placeholder lines with real data
-  const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  let sigContext: 'party1' | 'party2' | null = null
-  const processedLines = contract.content.split('\n').map(line => {
-    const t = line.trim()
-    // Update party context and normalise the party header line to use real names
-    if (/party\s*1/i.test(t)) {
-      sigContext = 'party1'
-      if (contract.party1?.name) return line.replace(/PARTY\s*1\s*[-—–]\s*.+/i, `PARTY 1 - ${contract.party1.name}`)
-    } else if (/party\s*2/i.test(t)) {
-      sigContext = 'party2'
-      if (contract.party2?.name) return line.replace(/PARTY\s*2\s*[-—–]\s*.+/i, `PARTY 2 - ${contract.party2.name}`)
-    }
+  // ── 3. Party cards ───────────────────────────────────────────────────────────
+  // Two side-by-side cards (Provider | Client) matching DocumentPartyHeader on site
+  const cardW = (contentWidth - 10) / 2
+  const p1 = contract.party1
+  const p2 = contract.party2
 
-    const sig = sigContext === 'party1' ? party1Sig : sigContext === 'party2' ? party2Sig : null
-    const name = sigContext === 'party1' ? (contract.party1?.name || '') : (contract.party2?.name || '')
-    // For party1 who never signs via a token, fall back to contract record data
-    const effectiveName = sig?.printedName || name
-    const effectiveDate = sig?.signedAt || (sigContext === 'party1' ? contract.createdAt : null)
+  const drawPartyCard = (
+    xStart: number,
+    role: string,
+    accentColor: ReturnType<typeof rgb>,
+    fields: { label: string; value: string }[]
+  ) => {
+    const rowH = 16
+    const cardH = 22 + fields.length * rowH + 8
+    // Card border
+    page.drawRectangle({ x: xStart, y: y - cardH + 18, width: cardW, height: cardH, borderColor: borderGray, borderWidth: 1 })
+    // Accent left border
+    page.drawRectangle({ x: xStart, y: y - cardH + 18, width: 4, height: cardH, color: accentColor })
+    // Header strip
+    page.drawRectangle({ x: xStart + 4, y: y - cardH + 18, width: cardW - 4, height: 18, color: rgb(0.980, 0.980, 0.976) })
+    page.drawText(role.toUpperCase(), { x: xStart + 10, y: y + 1, size: 8, font: fontBold, color: lightGray })
 
-    if (/^Signature\s*:/i.test(t) && /_+/.test(t) && effectiveName) {
-      return `Signature: [Digitally signed by ${effectiveName}]`
+    let cy = y - 18
+    for (const { label, value } of fields) {
+      if (!value) continue
+      page.drawText(label.toUpperCase(), { x: xStart + 10, y: cy, size: 7, font: fontBold, color: lightGray })
+      cy -= 11
+      const displayVal = s(value)
+      page.drawText(displayVal, { x: xStart + 10, y: cy, size: 9, font, color: rgb(0.102, 0.102, 0.102) })
+      const vw = font.widthOfTextAtSize(displayVal, 9)
+      page.drawLine({
+        start: { x: xStart + 10, y: cy - 2 },
+        end: { x: xStart + 10 + Math.min(vw + 2, cardW - 20), y: cy - 2 },
+        thickness: 0.5,
+        color: rgb(0.102, 0.102, 0.102),
+      })
+      cy -= rowH - 11 + 5
     }
-    if (/^Full Name\s*:/i.test(t) && /_+/.test(t) && effectiveName) {
-      return `Full Name: ${effectiveName}`
-    }
-    if (/^Date\s*:/i.test(t) && /_+/.test(t) && effectiveDate) {
-      return `Date: ${formatDate(effectiveDate)}`
-    }
-    return line
-  })
+    return cardH
+  }
 
-  const lines = sanitize(processedLines.join('\n')).split('\n')
-  
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) {
-      y -= 10
+  const p1Fields = [
+    { label: 'Name', value: p1?.name || '' },
+    { label: 'Email', value: p1?.email || '' },
+    { label: 'Address', value: p1?.address || '' },
+  ].filter(f => f.value)
+  const p2Fields = [
+    { label: 'Name', value: p2?.name || '' },
+    { label: 'Email', value: p2?.email || '' },
+    { label: 'Address', value: p2?.address || '' },
+  ].filter(f => f.value)
+
+  const h1 = drawPartyCard(margin, 'Provider', darkGreen, p1Fields)
+  const h2 = drawPartyCard(margin + cardW + 10, 'Client', midGreen, p2Fields)
+  y -= Math.max(h1, h2) + 18
+
+  // Thin divider below party cards
+  page.drawLine({ start: { x: margin, y }, end: { x: margin + contentWidth, y }, thickness: 0.5, color: borderGray })
+  y -= 18
+
+  // ── 4. Document body ─────────────────────────────────────────────────────────
+  const blocks = contract.content.split(/\n\n+/).filter(Boolean)
+  let footerText = ''
+
+  for (const block of blocks) {
+    const parsed = parseBlock(block)
+
+    // Party info and raw signature blocks are handled separately
+    if (parsed.type === 'party' || parsed.type === 'signature') continue
+    if (parsed.type === 'footer') { footerText = parsed.body; continue }
+
+    if (parsed.type === 'section') {
+      ensureSpace(40)
+      y -= 14
+
+      if (parsed.heading) {
+        // Green underline above heading (matches website's border-b on the section heading div)
+        page.drawLine({
+          start: { x: margin, y: y + 14 },
+          end: { x: margin + contentWidth, y: y + 14 },
+          thickness: 0.75,
+          color: paleGreen,
+        })
+        drawWrapped(parsed.heading, { size: 11, bold: true, color: darkGreen })
+        y -= 3
+      }
+      if (parsed.body) {
+        renderBody(parsed.body)
+        y -= 4
+      }
       continue
     }
-    
-    addNewPageIfNeeded(20)
-    
-    // Check if it's a section heading (numbered like "01. HEADING" or ALL CAPS)
-    const isHeading = /^\d{2}\.\s+[A-Z]/.test(trimmed) || (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 60)
-    
-    if (isHeading) {
-      y -= 10
-      currentPage.drawLine({
-        start: { x: margin, y: y + 12 },
-        end: { x: margin + contentWidth, y: y + 12 },
-        thickness: 1,
-        color: rgb(0.847, 0.953, 0.863),
-      })
-      currentPage.drawText(trimmed, {
-        x: margin,
-        y,
-        size: 11,
-        font: fontBold,
-        color: darkGreen,
-      })
-      y -= 20
-    } else {
-      // Wrap text
-      const words = trimmed.split(' ')
-      let currentLine = ''
-      
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word
-        const textWidth = font.widthOfTextAtSize(testLine, 10)
-        
-        if (textWidth > contentWidth) {
-          addNewPageIfNeeded(14)
-          currentPage.drawText(currentLine, {
-            x: margin,
-            y,
-            size: 10,
-            font,
-            color: gray,
-          })
-          y -= 14
-          currentLine = word
-        } else {
-          currentLine = testLine
-        }
-      }
-      
-      if (currentLine) {
-        addNewPageIfNeeded(14)
-        currentPage.drawText(currentLine, {
-          x: margin,
-          y,
-          size: 10,
-          font,
-          color: gray,
-        })
-        y -= 14
-      }
-    }
+
+    // Plain body block
+    renderBody(parsed.body)
+    y -= 4
   }
-  
-  // Signature section
-  y -= 30
-  addNewPageIfNeeded(200)
-  
-  currentPage.drawLine({
-    start: { x: margin, y },
-    end: { x: margin + contentWidth, y },
-    thickness: 2,
-    color: darkGreen,
-  })
-  y -= 25
-  
-  currentPage.drawText('SIGNATURES', {
-    x: margin,
-    y,
-    size: 14,
-    font: fontBold,
-    color: darkGreen,
-  })
-  y -= 30
-  
-  // Party 1 signature
-  currentPage.drawRectangle({
-    x: margin,
-    y: y - 60,
-    width: (contentWidth / 2) - 10,
-    height: 80,
-    borderColor: midGreen,
-    borderWidth: 1,
-  })
-  
-  currentPage.drawText(s(`PARTY 1 - ${contract.party1?.name || 'Provider'}`), {
-    x: margin + 10,
-    y: y - 15,
-    size: 9,
-    font: fontBold,
-    color: darkGreen,
-  })
-  
-  currentPage.drawText(s(`Signed by: ${party1Sig?.printedName || contract.party1?.name || 'N/A'}`), {
-    x: margin + 10,
-    y: y - 30,
-    size: 9,
-    font,
-    color: gray,
-  })
 
-  currentPage.drawText(`Date: ${party1Sig?.signedAt ? new Date(party1Sig.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : contract.createdAt ? new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}`, {
-    x: margin + 10,
-    y: y - 42,
-    size: 9,
-    font,
-    color: gray,
-  })
+  // ── 5. Acceptance & Signatures ───────────────────────────────────────────────
+  ensureSpace(220)
+  y -= 24
 
-  currentPage.drawText(`IP: ${party1Sig?.ipAddress || 'N/A'}`, {
-    x: margin + 10,
-    y: y - 54,
-    size: 8,
-    font,
-    color: lightGray,
-  })
-  
-  // Party 2 signature
-  const party2X = margin + (contentWidth / 2) + 10
-  currentPage.drawRectangle({
-    x: party2X,
-    y: y - 60,
-    width: (contentWidth / 2) - 10,
-    height: 80,
-    borderColor: midGreen,
-    borderWidth: 1,
-  })
-  
-  currentPage.drawText(s(`PARTY 2 - ${contract.party2?.name || 'Client'}`), {
-    x: party2X + 10,
-    y: y - 15,
-    size: 9,
-    font: fontBold,
-    color: darkGreen,
-  })
-  
-  currentPage.drawText(`Signed by: ${party2Sig?.printedName || 'N/A'}`, {
-    x: party2X + 10,
-    y: y - 30,
-    size: 9,
-    font,
-    color: gray,
-  })
-  
-  currentPage.drawText(`Date: ${party2Sig?.signedAt ? new Date(party2Sig.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}`, {
-    x: party2X + 10,
-    y: y - 42,
-    size: 9,
-    font,
-    color: gray,
-  })
-  
-  currentPage.drawText(`IP: ${party2Sig?.ipAddress || 'N/A'}`, {
-    x: party2X + 10,
-    y: y - 54,
-    size: 8,
-    font,
-    color: lightGray,
-  })
-  
-  y -= 80
-  
-  // Footer
-  y -= 20
-  currentPage.drawText('This document was electronically signed via ClauseKit.', {
-    x: margin,
-    y,
-    size: 8,
-    font,
-    color: lightGray,
-  })
-  y -= 12
-  currentPage.drawText('Legally binding under the Electronic Communications Act 2000.', {
-    x: margin,
-    y,
-    size: 8,
-    font,
-    color: lightGray,
-  })
-  
+  // Heavy dark green rule (matches border-t-2 on site's SignatureBlock)
+  page.drawLine({ start: { x: margin, y }, end: { x: margin + contentWidth, y }, thickness: 2, color: darkGreen })
+  y -= 16
+
+  drawWrapped('ACCEPTANCE & SIGNATURES', { size: 12, bold: true, color: darkGreen })
+  y -= 4
+  drawWrapped(
+    'By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.',
+    { size: 9, color: gray }
+  )
+  y -= 18
+
+  // Two-column signature boxes
+  const colW  = (contentWidth - 12) / 2
+  const sigH  = 118
+  ensureSpace(sigH + 20)
+
+  const drawSigBox = (
+    xStart: number,
+    role: string,
+    partyName: string | undefined,
+    printedName: string | undefined,
+    signedAt: string | undefined,
+    ip: string | undefined,
+    accentColor: ReturnType<typeof rgb>
+  ) => {
+    const name = printedName || partyName || 'N/A'
+    const date = signedAt
+      ? fmtDate(signedAt)
+      : contract.createdAt
+        ? fmtDate(contract.createdAt)
+        : 'N/A'
+
+    // Box
+    page.drawRectangle({ x: xStart, y: y - sigH + 18, width: colW, height: sigH, borderColor: accentColor, borderWidth: 1 })
+    // Header strip
+    page.drawRectangle({ x: xStart, y: y - sigH + 18 + sigH - 18, width: colW, height: 18, color: rgb(0.933, 0.973, 0.949) })
+
+    page.drawText(s(`${role} - ${partyName || 'N/A'}`), { x: xStart + 8, y: y + 1, size: 9, font: fontBold, color: darkGreen })
+
+    const row = (label: string, value: string, dy: number, valueColor = gray) => {
+      page.drawText(label, { x: xStart + 8, y: y - dy,     size: 7, font: fontBold, color: lightGray })
+      page.drawText(s(value), { x: xStart + 8, y: y - dy - 10, size: 9, font, color: valueColor })
+    }
+
+    row('SIGNATURE', '[Digitally signed]', 20, midGreen)
+    row('FULL NAME',  name,                50)
+    row('DATE',       date,                80)
+    page.drawText(`IP: ${ip || 'N/A'}`, { x: xStart + 8, y: y - 108, size: 7, font, color: lightGray })
+  }
+
+  drawSigBox(margin,           'Provider', p1?.name, party1Sig?.printedName, party1Sig?.signedAt || contract.createdAt, party1Sig?.ipAddress, darkGreen)
+  drawSigBox(margin + colW + 12, 'Client', p2?.name, party2Sig?.printedName, party2Sig?.signedAt,                       party2Sig?.ipAddress, midGreen)
+  y -= sigH + 16
+
+  // ── 6. Footer ────────────────────────────────────────────────────────────────
+  page.drawLine({ start: { x: margin, y }, end: { x: margin + contentWidth, y }, thickness: 0.5, color: borderGray })
+  y -= 14
+
+  if (footerText) {
+    drawWrapped(footerText, { size: 8, color: lightGray })
+    y -= 4
+  }
+  drawWrapped('This document was electronically signed via ClauseKit.', { size: 8, color: lightGray })
+  y -= 2
+  drawWrapped('Legally binding under the Electronic Communications Act 2000.', { size: 8, color: lightGray })
+
   const pdfBytes = await pdfDoc.save()
-  
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       'Content-Type': 'application/pdf',
