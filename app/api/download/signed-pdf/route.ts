@@ -207,7 +207,7 @@ export async function GET(req: NextRequest) {
     borderWidth: 1,
   })
   
-  currentPage.drawText(s(`PARTY 1 — ${contract.party1?.name || 'Provider'}`), {
+  currentPage.drawText(s(`PARTY 1 - ${contract.party1?.name || 'Provider'}`), {
     x: margin + 10,
     y: y - 15,
     size: 9,
@@ -215,22 +215,22 @@ export async function GET(req: NextRequest) {
     color: darkGreen,
   })
   
-  currentPage.drawText(s(`Signed by: ${party1Sig?.printedName || 'N/A'}`), {
+  currentPage.drawText(s(`Signed by: ${party1Sig?.printedName || contract.party1?.name || 'N/A'}`), {
     x: margin + 10,
     y: y - 30,
     size: 9,
     font,
     color: gray,
   })
-  
-  currentPage.drawText(`Date: ${party1Sig?.signedAt ? new Date(party1Sig.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}`, {
+
+  currentPage.drawText(`Date: ${party1Sig?.signedAt ? new Date(party1Sig.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : contract.createdAt ? new Date(contract.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}`, {
     x: margin + 10,
     y: y - 42,
     size: 9,
     font,
     color: gray,
   })
-  
+
   currentPage.drawText(`IP: ${party1Sig?.ipAddress || 'N/A'}`, {
     x: margin + 10,
     y: y - 54,
@@ -250,7 +250,7 @@ export async function GET(req: NextRequest) {
     borderWidth: 1,
   })
   
-  currentPage.drawText(s(`PARTY 2 — ${contract.party2?.name || 'Client'}`), {
+  currentPage.drawText(s(`PARTY 2 - ${contract.party2?.name || 'Client'}`), {
     x: party2X + 10,
     y: y - 15,
     size: 9,
