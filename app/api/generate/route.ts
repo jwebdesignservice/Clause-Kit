@@ -93,6 +93,12 @@ CONTENT FORMATTING WITHIN SECTIONS:
   [item description] | [amount]
   TOTAL | [total amount]
   Follow the table with payment schedule as bullet points.
+  IMPORTANT: If the payment schedule involves a split (e.g. deposit + balance on completion), show each instalment as its own row in the table with the exact £ amount calculated from the total. For example, if the total is £3,800 and the split is 50/50:
+  ITEM | AMOUNT
+  Deposit (50%) | £1,900
+  Balance on completion (50%) | £1,900
+  TOTAL | £3,800
+  Always include the actual £ amounts — never just percentages alone.
 - For TIMELINES: use bullet points for milestones
 - For all other sections: use clear paragraphs. Where listing multiple items or conditions, use bullet points with dash prefix.
 - Bold key terms by wrapping in double asterisks: **term**
@@ -416,6 +422,33 @@ function buildUserPrompt(contractType: ContractType, fields: Record<string, stri
       } else {
         lines.push(`${label}: ${val}`)
       }
+    }
+  }
+
+  // Compute split payment amounts when a percentage-based schedule is provided
+  const rawFee = fields.feeAmount as string | undefined
+  const rawSchedule = (fields.paymentSchedule as string | undefined) ?? ''
+  const rawDepositPct = fields.depositPercentage as string | undefined
+
+  if (rawFee && rawSchedule) {
+    const feeNum = parseFloat(String(rawFee).replace(/[^0-9.]/g, ''))
+    // Detect explicit deposit percentage field first, then fall back to parsing the schedule string
+    let depositPct: number | null = null
+    if (rawDepositPct) {
+      depositPct = parseFloat(String(rawDepositPct).replace(/[^0-9.]/g, ''))
+    } else {
+      // e.g. "50% upfront, 50% on completion" or "50/50"
+      const match = rawSchedule.match(/(\d+)\s*%/)
+      if (match) depositPct = parseFloat(match[1])
+    }
+
+    if (!isNaN(feeNum) && depositPct !== null && !isNaN(depositPct) && depositPct > 0 && depositPct < 100) {
+      const balancePct = 100 - depositPct
+      const depositAmt = (feeNum * depositPct) / 100
+      const balanceAmt = feeNum - depositAmt
+      const fmt = (n: number) => `£${n % 1 === 0 ? n.toLocaleString('en-GB') : n.toFixed(2)}`
+      lines.push(`DEPOSIT AMOUNT (${depositPct}%): ${fmt(depositAmt)}`)
+      lines.push(`BALANCE ON COMPLETION (${balancePct}%): ${fmt(balanceAmt)}`)
     }
   }
 

@@ -909,10 +909,10 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
                 <p className="text-sm" style={{ color: '#6B7280' }}>The client or other party — Party 2 in the contract.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Full name or company name" error={errors.theirName}>
+                <Field label="Full Name" error={errors.theirName}>
                   <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Restaurant Group Ltd" hasError={!!errors.theirName} />
                 </Field>
-                <Field label="Contact name" optional hint="If company — who is signing?">
+                <Field label="Company Name" optional hint="If company — who is signing?">
                   <Input name="theirContactName" value={data.theirContactName} onChange={set} placeholder="e.g. Tom Jones" />
                 </Field>
               </div>
