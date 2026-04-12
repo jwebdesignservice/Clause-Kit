@@ -72,6 +72,7 @@ export default async function SignPage({ params, searchParams }: Props) {
       party1Signed={!!contract.party1Signature}
       party1PrintedName={contract.party1Signature?.printedName}
       party1SignedAt={contract.party1Signature?.signedAt}
+      party1SignatureUrl={contract.party1Signature?.dataUrl}
     />
   )
 }

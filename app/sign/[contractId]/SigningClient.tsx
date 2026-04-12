@@ -16,6 +16,7 @@ interface Props {
   party1Signed?: boolean
   party1PrintedName?: string
   party1SignedAt?: string
+  party1SignatureUrl?: string
 }
 
 // Parse contract block type (mirrors sender view)
@@ -23,7 +24,7 @@ function parseBlock(text: string): { type: 'section' | 'party' | 'signature' | '
   const t = text.trim()
   if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
   if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
-  if (t.startsWith('PARTY 1 -') || t.startsWith('PARTY 2 -') || t.startsWith('ACCEPTANCE')) return { type: 'signature', body: t }
+  if (/^PARTY [12]\s*[-—]/.test(t) || t.startsWith('ACCEPTANCE')) return { type: 'signature', body: t }
   if (t.includes('Signature:') && t.includes('Full Name:')) return { type: 'signature', body: t }
   
   // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
@@ -58,7 +59,7 @@ function FormattedText({ text }: { text: string }) {
   return <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#374151' }}>{text}</p>
 }
 
-export default function SigningClient({ contractId, token, role, title, content, party1, party2, party1Signed, party1PrintedName, party1SignedAt }: Props) {
+export default function SigningClient({ contractId, token, role, title, content, party1, party2, party1Signed, party1PrintedName, party1SignedAt, party1SignatureUrl }: Props) {
   const sigRef = useRef<SignatureCanvas>(null)
   const [signMode, setSignMode] = useState<'draw' | 'type'>('draw')
   const [typedName, setTypedName] = useState('')
@@ -201,10 +202,16 @@ export default function SigningClient({ contractId, token, role, title, content,
                   if (isParty1Block && party1Signed) {
                     return (
                       <div key={i} className="mt-6 mb-4 p-4 border-l-4" style={{ borderColor: '#2D6A4F', backgroundColor: '#EDFAF2' }}>
-                        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2D6A4F' }}>Party 1 — Signed</p>
-                        <p className="text-sm" style={{ color: '#374151' }}>Signature: <span className="italic">[Digitally signed]</span></p>
-                        <p className="text-sm" style={{ color: '#374151' }}>Full Name: {party1PrintedName ?? party1?.name ?? '—'}</p>
-                        <p className="text-sm" style={{ color: '#374151' }}>Date: {party1SignedAt ? new Date(party1SignedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+                        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#2D6A4F' }}>Party 1 — Signed</p>
+                        <div className="mb-3">
+                          <p className="text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>SIGNATURE</p>
+                          {party1SignatureUrl
+                            ? <img src={party1SignatureUrl} alt="Party 1 signature" style={{ maxHeight: 60, maxWidth: 240, display: 'block' }} />
+                            : <span className="text-sm italic" style={{ color: '#374151' }}>[Digitally signed]</span>
+                          }
+                        </div>
+                        <p className="text-sm mb-1" style={{ color: '#374151' }}><span className="font-semibold">Full Name:</span> {party1PrintedName ?? party1?.name ?? '—'}</p>
+                        <p className="text-sm" style={{ color: '#374151' }}><span className="font-semibold">Date:</span> {party1SignedAt ? new Date(party1SignedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
                       </div>
                     )
                   }

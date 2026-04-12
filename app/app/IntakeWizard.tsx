@@ -217,7 +217,63 @@ function RepeatableField({ name, values, onChange, placeholder }: {
   )
 }
 
-// â"€â"€ Contract-specific question sets â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── Revision select with custom input support ─────────────────────────────────
+
+const REVISION_PRESETS = ['1 round', '2 rounds', '3 rounds', 'Unlimited', 'No revisions included']
+
+function RevisionSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isCustom = value !== '' && !REVISION_PRESETS.includes(value)
+  const [showCustom, setShowCustom] = useState(isCustom)
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === '__custom__') {
+      setShowCustom(true)
+      onChange('')
+    } else {
+      setShowCustom(false)
+      onChange(e.target.value)
+    }
+  }
+
+  if (showCustom) {
+    return (
+      <div className="space-y-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. 5 rounds"
+          className={inputClass}
+          style={inputStyle}
+          autoFocus
+        />
+        <button
+          type="button"
+          onClick={() => { setShowCustom(false); onChange('') }}
+          className="text-xs hover:opacity-70"
+          style={{ color: '#6B7280' }}
+        >
+          ← Back to presets
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <select
+      value={isCustom ? '__custom__' : value}
+      onChange={handleSelectChange}
+      className={inputClass}
+      style={inputStyle}
+    >
+      <option value="">Select...</option>
+      {REVISION_PRESETS.map((o) => <option key={o} value={o}>{o}</option>)}
+      <option value="__custom__">Custom...</option>
+    </select>
+  )
+}
+
+// ── Contract-specific question sets ──────────────────────────────────────────
 
 function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; set: (k: string, v: string) => void; setArr: (k: string, v: string[]) => void; errors: Record<string, string> }) {
   return (
@@ -263,7 +319,7 @@ function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; s
       <SectionHeading title="Revisions & Scope" />
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Revisions included">
-          <Select name="revisionsIncluded" value={data.revisionsIncluded as string ?? ''} onChange={set} options={['1 round', '2 rounds', '3 rounds', 'Unlimited', 'No revisions included']} />
+          <RevisionSelect value={data.revisionsIncluded as string ?? ''} onChange={(v) => set('revisionsIncluded', v)} />
         </Field>
         <Field label="Additional revision rate" optional hint="If revisions are used up">
           <CurrencyInput name="additionalRevisionRate" value={data.additionalRevisionRate as string ?? ''} onChange={set} suffix="/hr" />
@@ -271,7 +327,7 @@ function FreelanceQuestions({ data, set, setArr, errors }: { data: IntakeData; s
       </div>
 
       <SectionHeading title="Intellectual Property" />
-      <Field label="Who owns the work after payment?" hint="Choose when ownership of the work you create passes to your client">
+      <Field label="How is intellectual property handled?" hint="Choose how ownership of your work passes to the client">
         <Select name="ipTransfer" value={data.ipTransfer as string ?? ''} onChange={set} options={['On full payment received', 'On project completion', 'Licence only — IP stays with freelancer']} />
       </Field>
 

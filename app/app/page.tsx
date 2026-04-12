@@ -66,6 +66,16 @@ interface Notification {
   read: boolean
 }
 
+interface DocStyle {
+  font: string
+  bodySize: number
+  headingSize: number
+  bodyColor: string
+  headingColor: string
+  bodyWeight: 400 | 500 | 600
+  headingWeight: 600 | 700 | 800
+}
+
 interface SavedContract {
   id: string
   title: string
@@ -82,6 +92,7 @@ interface SavedContract {
   content?: string
   intakeData?: Record<string, string | string[]>
   isTemplate?: boolean
+  docStyle?: DocStyle
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────────
@@ -591,20 +602,21 @@ function EditableParties({ contract, intake, onUpdate, onEdit }: {
 }) {
   const [editing, setEditing] = useState(false)
   const [p1Name, setP1Name] = useState(contract.party1 ?? '')
+  const [p1Company, setP1Company] = useState(String(intake.yourBusinessName ?? ''))
   const [p1Email, setP1Email] = useState(contract.party1Email ?? '')
   const [p1Address, setP1Address] = useState(String(intake.yourAddress ?? ''))
-  const [p2Name, setP2Name] = useState(contract.party2 ?? '')
+  const [p2Name, setP2Name] = useState(String(intake.theirContactName ?? ''))
+  const [p2Company, setP2Company] = useState(contract.party2 ?? '')
   const [p2Email, setP2Email] = useState(contract.party2Email ?? '')
   const [p2Address, setP2Address] = useState(String(intake.theirAddress ?? ''))
-  const [p2Contact, setP2Contact] = useState(String(intake.theirContactName ?? ''))
 
   const inputCls = "w-full border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
   const inputSty = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
 
   const handleSave = () => {
-    const updated = { ...contract, party1: p1Name, party1Email: p1Email, party2: p2Name, party2Email: p2Email }
+    const updated = { ...contract, party1: p1Name, party1Email: p1Email, party2: p2Company, party2Email: p2Email }
     if (contract.intakeData) {
-      updated.intakeData = { ...contract.intakeData, yourAddress: p1Address, theirAddress: p2Address, theirContactName: p2Contact }
+      updated.intakeData = { ...contract.intakeData, yourBusinessName: p1Company, yourAddress: p1Address, theirContactName: p2Name, theirAddress: p2Address }
     }
     onUpdate(updated)
     onEdit?.()
@@ -636,8 +648,9 @@ function EditableParties({ contract, intake, onUpdate, onEdit }: {
         </div>
         <div className="px-4 py-3 space-y-3">
           {renderField('Name', p1Name, setP1Name, 'p1-name')}
-          {renderField('Email', p1Email, setP1Email, 'p1-email')}
-          {renderField('Address', p1Address, setP1Address, 'p1-address')}
+          {renderField('Company Name', p1Company, setP1Company, 'p1-company')}
+          {renderField('Business Email', p1Email, setP1Email, 'p1-email')}
+          {renderField('Business Address', p1Address, setP1Address, 'p1-address')}
         </div>
       </div>
 
@@ -648,9 +661,9 @@ function EditableParties({ contract, intake, onUpdate, onEdit }: {
         </div>
         <div className="px-4 py-3 space-y-3">
           {renderField('Name', p2Name, setP2Name, 'p2-name')}
-          {renderField('Email', p2Email, setP2Email, 'p2-email')}
-          {renderField('Address', p2Address, setP2Address, 'p2-address')}
-          {renderField('Contact', p2Contact, setP2Contact, 'p2-contact')}
+          {renderField('Company Name', p2Company, setP2Company, 'p2-company')}
+          {renderField('Business Email', p2Email, setP2Email, 'p2-email')}
+          {renderField('Business Address', p2Address, setP2Address, 'p2-address')}
         </div>
       </div>
 
@@ -836,17 +849,23 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
   const [sigError, setSigError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [subscribeLoading, setSubscribeLoading] = useState(false)
-  const [docFont, setDocFont] = useState('Inter, sans-serif')
-  const [docBodySize, setDocBodySize] = useState(14)
-  const [docHeadingSize, setDocHeadingSize] = useState(18)
-  const [docBodyColor, setDocBodyColor] = useState('#374151')
-  const [docHeadingColor, setDocHeadingColor] = useState('#1B4332')
-  const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(400)
-  const [docHeadingWeight, setDocHeadingWeight] = useState<600 | 700 | 800>(700)
+  const [docFont, setDocFont] = useState(contract.docStyle?.font ?? 'Inter, sans-serif')
+  const [docBodySize, setDocBodySize] = useState(contract.docStyle?.bodySize ?? 14)
+  const [docHeadingSize, setDocHeadingSize] = useState(contract.docStyle?.headingSize ?? 18)
+  const [docBodyColor, setDocBodyColor] = useState(contract.docStyle?.bodyColor ?? '#374151')
+  const [docHeadingColor, setDocHeadingColor] = useState(contract.docStyle?.headingColor ?? '#1B4332')
+  const [docFontWeight, setDocFontWeight] = useState<400 | 500 | 600>(contract.docStyle?.bodyWeight ?? 500)
+  const [docHeadingWeight, setDocHeadingWeight] = useState<600 | 700 | 800>(contract.docStyle?.headingWeight ?? 700)
   const [docLogo, setDocLogo] = useState<string>(String(contract.intakeData?.yourLogo ?? ''))
   const documentContainerRef = useRef<HTMLDivElement>(null)
 
   const senderReady = !sigState.sig1Empty && !!sigState.name1.trim() && !!sigState.date1
+
+  // Persist doc style whenever typography settings change
+  useEffect(() => {
+    const docStyle: DocStyle = { font: docFont, bodySize: docBodySize, headingSize: docHeadingSize, bodyColor: docBodyColor, headingColor: docHeadingColor, bodyWeight: docFontWeight, headingWeight: docHeadingWeight }
+    onUpdate({ ...contract, docStyle })
+  }, [docFont, docBodySize, docHeadingSize, docBodyColor, docHeadingColor, docFontWeight, docHeadingWeight]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced save
   useEffect(() => {
@@ -1169,7 +1188,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
               {/* ── Reset ── */}
               <div className="pt-4">
                 <button
-                  onClick={() => { setDocFont('Inter, sans-serif'); setDocBodySize(14); setDocHeadingSize(18); setDocBodyColor('#374151'); setDocHeadingColor('#1B4332'); setDocFontWeight(400); setDocHeadingWeight(700) }}
+                  onClick={() => { setDocFont('Inter, sans-serif'); setDocBodySize(14); setDocHeadingSize(18); setDocBodyColor('#374151'); setDocHeadingColor('#1B4332'); setDocFontWeight(500); setDocHeadingWeight(700) }}
                   className="w-full py-2.5 text-xs font-semibold border hover:bg-[#FAFAF8] transition-colors"
                   style={{ borderColor: '#E5E5E2', color: '#6B7280' }}
                 >
