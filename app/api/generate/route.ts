@@ -309,7 +309,9 @@ function buildUserPrompt(contractType: ContractType, fields: Record<string, stri
   const lines: string[] = []
 
   // Party details
-  if (fields.yourName) lines.push(`PARTY 1 NAME: ${fields.yourName}`)
+  const p1Name = (fields.yourFullName as string) || (fields.yourName as string)
+  if (p1Name) lines.push(`PARTY 1 NAME: ${p1Name}`)
+  if (fields.yourBusinessName) lines.push(`PARTY 1 COMPANY: ${fields.yourBusinessName}`)
   if (fields.yourEmail) lines.push(`PARTY 1 EMAIL: ${fields.yourEmail}`)
   if (fields.yourAddress) lines.push(`PARTY 1 ADDRESS: ${fields.yourAddress}`)
   if (fields.yourCompanyNumber) lines.push(`PARTY 1 COMPANY NUMBER: ${fields.yourCompanyNumber}`)
@@ -318,7 +320,7 @@ function buildUserPrompt(contractType: ContractType, fields: Record<string, stri
   if (fields.theirName) lines.push(`PARTY 2 NAME: ${fields.theirName}`)
   if (fields.theirEmail) lines.push(`PARTY 2 EMAIL: ${fields.theirEmail}`)
   if (fields.theirAddress) lines.push(`PARTY 2 ADDRESS: ${fields.theirAddress}`)
-  if (fields.theirContactName) lines.push(`PARTY 2 CONTACT: ${fields.theirContactName}`)
+  if (fields.theirContactName) lines.push(`PARTY 2 COMPANY: ${fields.theirContactName}`)
 
   if (fields.contractStartDate) lines.push(`CONTRACT START DATE: ${fields.contractStartDate}`)
   if (fields.governingLaw) lines.push(`GOVERNING LAW: ${fields.governingLaw}`)
@@ -552,12 +554,14 @@ export async function POST(req: NextRequest) {
   const createdAt = new Date().toISOString()
 
   const party1 = {
-    name: (fields.yourName as string) ?? '',
+    name: ((fields.yourFullName as string) || (fields.yourName as string)) ?? '',
+    company: (fields.yourBusinessName as string) ?? '',
     email: (fields.yourEmail as string) ?? '',
     address: (fields.yourAddress as string) ?? '',
   }
   const party2 = {
     name: (fields.theirName as string) ?? '',
+    company: (fields.theirContactName as string) ?? '',
     email: (fields.theirEmail as string) ?? '',
     address: (fields.theirAddress as string) ?? '',
   }

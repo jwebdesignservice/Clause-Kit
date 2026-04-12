@@ -966,10 +966,10 @@ export default function IntakeWizard({ contractTypeId, contractTypeTitle, onComp
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Full Name" error={errors.theirName}>
-                  <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Restaurant Group Ltd" hasError={!!errors.theirName} />
+                  <Input name="theirName" value={data.theirName} onChange={set} placeholder="e.g. Tom Jones" hasError={!!errors.theirName} />
                 </Field>
-                <Field label="Company Name" optional hint="If company — who is signing?">
-                  <Input name="theirContactName" value={data.theirContactName} onChange={set} placeholder="e.g. Tom Jones" />
+                <Field label="Company Name" optional hint="If applicable">
+                  <Input name="theirContactName" value={data.theirContactName} onChange={set} placeholder="e.g. Restaurant Group Ltd" />
                 </Field>
               </div>
               <Field label="Email address" error={errors.theirEmail}>
