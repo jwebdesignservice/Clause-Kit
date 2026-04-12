@@ -685,12 +685,17 @@ function EditableParties({ contract, intake, onUpdate, onEdit }: {
 
 function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; intake: Record<string, unknown> }) {
   const p1Name = contract.party1 ?? ''
+  const p1Company = String(intake.yourBusinessName ?? '')
   const p1Email = contract.party1Email ?? ''
   const p1Address = String(intake.yourAddress ?? '')
-  const p2Name = contract.party2 ?? ''
+  const p2Name = String(intake.theirContactName ?? '')
+  const p2Company = contract.party2 ?? ''
   const p2Email = contract.party2Email ?? ''
   const p2Address = String(intake.theirAddress ?? '')
-  const p2Contact = String(intake.theirContactName ?? '')
+
+  const field = (label: string, value: string) => value ? (
+    <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>{label}</p><p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #E5E5E2', paddingBottom: 3 }}>{value}</p></div>
+  ) : null
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -700,9 +705,10 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Provider</p>
         </div>
         <div className="px-4 py-3 space-y-2">
-          {p1Name && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Name</p><p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Name}</p></div>}
-          {p1Email && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Email</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Email}</p></div>}
-          {p1Address && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Address</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p1Address}</p></div>}
+          {field('Name', p1Name)}
+          {field('Company Name', p1Company)}
+          {field('Business Email', p1Email)}
+          {field('Business Address', p1Address)}
         </div>
       </div>
       {/* Client */}
@@ -711,10 +717,10 @@ function DocumentPartyHeader({ contract, intake }: { contract: SavedContract; in
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#888' }}>Client</p>
         </div>
         <div className="px-4 py-3 space-y-2">
-          {p2Name && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Name</p><p className="text-sm font-medium" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Name}</p></div>}
-          {p2Contact && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Contact</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Contact}</p></div>}
-          {p2Email && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Email</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Email}</p></div>}
-          {p2Address && <div><p className="text-[10px] uppercase tracking-widest" style={{ color: '#888' }}>Address</p><p className="text-sm" style={{ color: '#1A1A1A', borderBottom: '1px solid #1A1A1A', paddingBottom: 3 }}>{p2Address}</p></div>}
+          {field('Name', p2Name)}
+          {field('Company Name', p2Company)}
+          {field('Business Email', p2Email)}
+          {field('Business Address', p2Address)}
         </div>
       </div>
     </div>
