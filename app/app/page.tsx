@@ -1587,6 +1587,7 @@ export default function AppDashboard() {
           senderName: contract.party1,
           senderEmail: contract.party1Email,
           contractType: contract.typeId,
+          docFont: contract.docStyle?.font,
         }),
       })
 

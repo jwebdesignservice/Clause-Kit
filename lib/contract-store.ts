@@ -38,6 +38,7 @@ export interface ContractRecord {
   signedPdfPath?: string
   expiresAt?: string
   userId?: string
+  docFont?: string
 }
 
 // ── Determine storage backend ─────────────────────────────────────────────────

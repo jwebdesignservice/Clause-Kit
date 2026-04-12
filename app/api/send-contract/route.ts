@@ -8,16 +8,17 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { 
-      contractId, 
-      resend: isResend, 
-      recipientEmail, 
-      recipientName, 
+    const {
+      contractId,
+      resend: isResend,
+      recipientEmail,
+      recipientName,
       title,
       content,
       senderName,
       senderEmail,
       contractType,
+      docFont,
     } = body;
 
     if (!contractId || !recipientEmail) {
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     }
     contractRecord.status = 'sent';
     contractRecord.party2SigningToken = createSigningToken(contractId, 'party2', recipientEmail);
+    if (docFont) contractRecord.docFont = docFont;
     
     await saveContractAsync(contractRecord);
 

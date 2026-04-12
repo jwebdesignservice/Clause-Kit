@@ -17,15 +17,17 @@ interface Props {
   party1PrintedName?: string
   party1SignedAt?: string
   party1SignatureUrl?: string
+  docFont?: string
 }
 
 // Parse contract block type (mirrors sender view)
 function parseBlock(text: string): { type: 'section' | 'party' | 'signature' | 'footer' | 'body'; heading?: string; body: string } {
   const t = text.trim()
   if (t.startsWith('---') || t.startsWith('This document was generated')) return { type: 'footer', body: t }
-  if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
+  // Signature check must come before party check — "Full Name:" contains "Name:" and would false-match the party condition
   if (/^PARTY [12]\s*[-—]/.test(t) || t.startsWith('ACCEPTANCE')) return { type: 'signature', body: t }
   if (t.includes('Signature:') && t.includes('Full Name:')) return { type: 'signature', body: t }
+  if (t.startsWith('PARTY 1 (') || t.startsWith('PARTY 2 (') || (t.startsWith('PARTY 1') && t.includes('Name:'))) return { type: 'party', body: t }
   
   // Numbered section: "01. HEADING - body" or "01. HEADING\nbody"
   const sectionMatch = t.match(/^(\d{2}\.\s+[A-Z][A-Z\s&/]+?)(?:\s*[-–—]\s*|\n)([\s\S]+)/)
@@ -59,7 +61,7 @@ function FormattedText({ text }: { text: string }) {
   return <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#374151' }}>{text}</p>
 }
 
-export default function SigningClient({ contractId, token, role, title, content, party1, party2, party1Signed, party1PrintedName, party1SignedAt, party1SignatureUrl }: Props) {
+export default function SigningClient({ contractId, token, role, title, content, party1, party2, party1Signed, party1PrintedName, party1SignedAt, party1SignatureUrl, docFont }: Props) {
   const sigRef = useRef<SignatureCanvas>(null)
   const [signMode, setSignMode] = useState<'draw' | 'type'>('draw')
   const [typedName, setTypedName] = useState('')
@@ -161,7 +163,7 @@ export default function SigningClient({ contractId, token, role, title, content,
             <div className="px-4 py-3 border-b" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Contract document</p>
             </div>
-            <div className="p-6 lg:p-8 max-h-[70vh] overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <div className="p-6 lg:p-8 max-h-[70vh] overflow-y-auto" style={{ fontFamily: docFont ?? 'Inter, sans-serif' }}>
               {content.split(/\n\n+/).filter(Boolean).map((block, i) => {
                 const parsed = parseBlock(block)
                 
