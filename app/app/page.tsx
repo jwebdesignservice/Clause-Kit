@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react'
 import SignatureCanvas from 'react-signature-canvas'
 import { cn } from '@/lib/utils'
 import IntakeWizard, { type IntakeData } from './IntakeWizard'
+import { SignatureBlock, type SignatureState } from '@/components/contract/SignatureBlock'
 import {
   Plus,
   FileText,
@@ -39,6 +40,12 @@ import {
   Bookmark,
   Trash2,
   Bell,
+  Activity,
+  Sparkles,
+  BookOpen,
+  AlertTriangle,
+  Calendar,
+  PoundSterling,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -482,116 +489,6 @@ function FormattedBody({ text, onUpdate, bodySize = 14, bodyColor = '#374151', b
   )
 }
 
-// ── Signature block with draw canvas + input fields ───────────────────────────
-
-interface SignatureState {
-  sig1Empty: boolean
-  name1: string
-  date1: string
-}
-
-function SignatureBlock({ party1Name, party2Name, onStateChange }: {
-  party1Name: string; party2Name: string
-  onStateChange?: (state: SignatureState) => void
-}) {
-  const sig1Ref = useRef<SignatureCanvas>(null)
-  const sig2Ref = useRef<SignatureCanvas>(null)
-  const [name1, setName1] = useState('')
-  const [name2, setName2] = useState('')
-  const [date1, setDate1] = useState('')
-  const [date2, setDate2] = useState('')
-
-  // Notify parent of state changes
-  useEffect(() => {
-    onStateChange?.({
-      sig1Empty: !sig1Ref.current || sig1Ref.current.isEmpty(),
-      name1,
-      date1,
-    })
-  }, [name1, date1]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const inputCls = "w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
-  const inputSty = { borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }
-
-  const handleSigEnd = () => {
-    onStateChange?.({
-      sig1Empty: !sig1Ref.current || sig1Ref.current.isEmpty(),
-      name1,
-      date1,
-    })
-  }
-
-  return (
-    <div className="mt-10 pt-6 border-t-2" style={{ borderColor: '#1B4332' }}>
-      <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>Acceptance &amp; Signatures</p>
-      <p className="text-sm mb-8 leading-relaxed" style={{ color: '#374151' }}>
-        By signing below, both parties confirm they have read, understood, and agree to all terms set out in this Agreement.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Party 1 — Sender (required) */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#1B4332' }}>Provider {party1Name ? `\u2014 ${party1Name}` : ''}</p>
-          <p className="text-xs mb-4" style={{ color: '#EF4444' }}>* Required before sending</p>
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature <span style={{ color: '#EF4444' }}>*</span></p>
-            <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-              <SignatureCanvas
-                ref={sig1Ref}
-                onEnd={handleSigEnd}
-                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none' } }}
-                backgroundColor="transparent"
-                penColor="#1a1a1a"
-              />
-            </div>
-            <button onClick={() => { sig1Ref.current?.clear(); handleSigEnd() }} className="text-xs mt-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>Clear</button>
-          </div>
-          <div className="mb-3">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name <span style={{ color: '#EF4444' }}>*</span></p>
-            <input type="text" value={name1} onChange={(e) => setName1(e.target.value)} placeholder="Type your full name" className={inputCls} style={inputSty} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date <span style={{ color: '#EF4444' }}>*</span></p>
-            <input 
-              type="date" 
-              value={date1} 
-              onChange={(e) => setDate1(e.target.value)} 
-              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} 
-              className={`${inputCls} cursor-pointer`} 
-              style={inputSty} 
-            />
-          </div>
-        </div>
-
-        {/* Party 2 — Client (filled when they receive) */}
-        <div style={{ opacity: 0.5 }}>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#1B4332' }}>Client {party2Name ? `\u2014 ${party2Name}` : ''}</p>
-          <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>Completed when client signs</p>
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Signature</p>
-            <div className="border" style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8' }}>
-              <SignatureCanvas
-                ref={sig2Ref}
-                canvasProps={{ height: 100, style: { display: 'block', width: '100%', touchAction: 'none', pointerEvents: 'none' } }}
-                backgroundColor="transparent"
-                penColor="#1a1a1a"
-              />
-            </div>
-          </div>
-          <div className="mb-3">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Full Name</p>
-            <input type="text" value={name2} onChange={(e) => setName2(e.target.value)} disabled placeholder="Awaiting client" className={inputCls} style={{ ...inputSty, cursor: 'not-allowed' }} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Date</p>
-            <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)} disabled className={inputCls} style={{ ...inputSty, cursor: 'not-allowed' }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Editable party details (sidebar) ──────────────────────────────────────────
 
 function EditableParties({ contract, intake, onUpdate, onEdit }: {
@@ -840,12 +737,47 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
   onBack: () => void
   onCheckout: (id: string) => void
   onSubscribe: () => Promise<void>
-  onSend: (id: string, resend?: boolean) => Promise<void>
+  onSend: (id: string, resend?: boolean, senderSig?: { dataUrl: string; printedName: string; signedAt: string }) => Promise<void>
   onUpdate: (updated: SavedContract) => void
   session: { user?: { name?: string | null; email?: string | null } } | null
   isSubscribed: boolean
 }) {
-  const [sideTab, setSideTab] = useState<'parties' | 'details' | 'styling'>('parties')
+  const [sideTab, setSideTab] = useState<'parties' | 'details' | 'styling' | 'insights'>('parties')
+
+  // AI insights (health score + summary) — lazy-loaded on tab open
+  type HealthScore = {
+    overall: number
+    categories: { label: string; score: 'strong' | 'moderate' | 'weak' | 'missing'; detail: string }[]
+    topTip: string
+  }
+  type ContractSummary = {
+    headline: string
+    whatYouAreAgreeing: string[]
+    whatTheyAreAgreeing: string[]
+    keyProtections: string[]
+    keyRisks: string[]
+    importantDates: string[]
+    moneyTerms: string
+  }
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null)
+  const [healthLoading, setHealthLoading] = useState(false)
+  const [healthError, setHealthError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<ContractSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+
+  // Regenerate-with-feedback modal
+  const [showRegenModal, setShowRegenModal] = useState(false)
+  const [regenFeedback, setRegenFeedback] = useState('')
+  const [regenLoading, setRegenLoading] = useState(false)
+  const [regenError, setRegenError] = useState<string | null>(null)
+
+  // Autosave indicator — 'idle' | 'saving' | 'saved'
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+
+  // Mobile sidebar collapse state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [editableContent, setEditableContent] = useState(contract.content ?? '')
   const [editableTitle, setEditableTitle] = useState(contract.title)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -873,13 +805,63 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
     onUpdate({ ...contract, docStyle })
   }, [docFont, docBodySize, docHeadingSize, docBodyColor, docHeadingColor, docFontWeight, docHeadingWeight]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced save
+  // Debounced save with status indicator
   useEffect(() => {
+    if (editableContent === contract.content && editableTitle === contract.title) return
+    setSaveStatus('saving')
     const t = setTimeout(() => {
       onUpdate({ ...contract, content: editableContent, title: editableTitle })
+      setSaveStatus('saved')
+      setLastSavedAt(new Date())
     }, 500)
     return () => clearTimeout(t)
   }, [editableContent, editableTitle]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Health score: fetch once when Insights tab opens (or refresh on content change + tab open)
+  useEffect(() => {
+    if (sideTab !== 'insights' || !editableContent.trim()) return
+    if (healthScore || healthLoading) return
+    setHealthLoading(true)
+    setHealthError(null)
+    fetch('/api/health-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: editableContent, contractType: contract.typeId }),
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'Failed')
+        return r.json()
+      })
+      .then((d) => setHealthScore(d.score))
+      .catch((e) => setHealthError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setHealthLoading(false))
+  }, [sideTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Summary: fetch once when Insights tab opens
+  useEffect(() => {
+    if (sideTab !== 'insights' || !editableContent.trim()) return
+    if (summary || summaryLoading) return
+    setSummaryLoading(true)
+    setSummaryError(null)
+    fetch('/api/summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: editableContent }),
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'Failed')
+        return r.json()
+      })
+      .then((d) => setSummary(d.summary))
+      .catch((e) => setSummaryError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setSummaryLoading(false))
+  }, [sideTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Invalidate cached insights when content changes substantively
+  useEffect(() => {
+    setHealthScore(null)
+    setSummary(null)
+  }, [contract.id]) // reset per contract
 
   // Parse contract text into blocks
   const blocks = editableContent.split(/\n\n+/).filter(Boolean)
@@ -935,12 +917,22 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
       {/* Floating format toolbar */}
       <FloatingFormatToolbar containerRef={documentContainerRef} />
-      
+
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setMobileSidebarOpen((o) => !o)}
+        className="lg:hidden fixed bottom-5 right-5 z-30 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg"
+        style={{ backgroundColor: '#2D6A4F' }}
+        aria-label="Toggle contract panel"
+      >
+        {mobileSidebarOpen ? <X className="w-5 h-5" /> : <LayoutTemplate className="w-5 h-5" />}
+      </button>
+
       {/* ── Left: Editable Document ── */}
-      <div ref={documentContainerRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont, paddingLeft: 48 }}>
+      <div ref={documentContainerRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#FFFFFF', fontFamily: docFont }}>
         <div className="max-w-3xl mx-auto px-8 py-10">
           {/* Back */}
           <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-6 hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
@@ -1062,21 +1054,45 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
         </div>
       </div>
 
+      {/* Mobile overlay when sidebar open */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="lg:hidden fixed inset-0 z-10 bg-black/40"
+          aria-hidden="true"
+        />
+      )}
+
       {/* ── Right: Info Sidebar ── */}
-      <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden" style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}>
+      <div
+        className={`w-80 flex-shrink-0 flex flex-col border-l overflow-hidden transition-transform duration-200 lg:translate-x-0 lg:static fixed right-0 top-0 bottom-0 z-20 ${mobileSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ backgroundColor: '#FAFAF8', borderColor: '#E5E5E2' }}
+      >
+        {/* Autosave indicator */}
+        {saveStatus !== 'idle' && (
+          <div className="flex items-center gap-1.5 px-4 py-2 border-b text-[11px] font-medium" style={{ borderColor: '#E5E5E2', backgroundColor: '#FFFFFF', color: saveStatus === 'saving' ? '#9CA3AF' : '#2D6A4F' }}>
+            {saveStatus === 'saving' ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Saving&hellip;</>
+            ) : (
+              <><Check className="w-3 h-3" strokeWidth={3} />
+                Saved{lastSavedAt ? ` ${new Date().getTime() - lastSavedAt.getTime() < 60000 ? 'just now' : lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</>
+            )}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex border-b flex-shrink-0" style={{ borderColor: '#E5E5E2' }}>
-          {(['parties', 'styling', 'details'] as const).map((t) => (
+          {(['parties', 'insights', 'styling', 'details'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSideTab(t)}
-              className="flex-1 py-2.5 text-xs font-semibold capitalize transition-colors"
+              className="flex-1 py-2.5 text-[11px] font-semibold capitalize transition-colors"
               style={sideTab === t
                 ? { backgroundColor: '#D8F3DC', color: '#1B4332', borderBottom: '2px solid #2D6A4F' }
                 : { backgroundColor: 'transparent', color: '#9CA3AF', borderBottom: '2px solid transparent' }
               }
             >
-              {t === 'parties' ? 'Parties' : t === 'details' ? 'Details' : 'Styling'}
+              {t === 'parties' ? 'Parties' : t === 'details' ? 'Details' : t === 'insights' ? 'Insights' : 'Styling'}
             </button>
           ))}
         </div>
@@ -1102,8 +1118,261 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                   <p className={`text-sm break-all ${r.label === 'Contract ID' ? 'font-mono text-xs' : ''}`} style={{ color: '#1B4332' }}>{r.value}</p>
                 </div>
               ))}
+
+              {/* Reading stats */}
+              {(() => {
+                const words = editableContent.split(/\s+/).filter(Boolean).length
+                const readMin = Math.max(1, Math.round(words / 220))
+                const sections = (editableContent.match(/^\d{2}\.\s+[A-Z]/gm) ?? []).length
+                return (
+                  <div className="mt-4 pt-4 border-t space-y-3" style={{ borderColor: '#E5E5E2' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Document stats</p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 border" style={{ borderColor: '#E5E5E2' }}>
+                        <p className="text-lg font-bold" style={{ color: '#1B4332' }}>{words}</p>
+                        <p className="text-[10px]" style={{ color: '#9CA3AF' }}>words</p>
+                      </div>
+                      <div className="p-2 border" style={{ borderColor: '#E5E5E2' }}>
+                        <p className="text-lg font-bold" style={{ color: '#1B4332' }}>{readMin}</p>
+                        <p className="text-[10px]" style={{ color: '#9CA3AF' }}>min read</p>
+                      </div>
+                      <div className="p-2 border" style={{ borderColor: '#E5E5E2' }}>
+                        <p className="text-lg font-bold" style={{ color: '#1B4332' }}>{sections || '—'}</p>
+                        <p className="text-[10px]" style={{ color: '#9CA3AF' }}>sections</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </>
           )}
+
+          {sideTab === 'insights' && (
+            <div className="space-y-5">
+              {/* ── Health Score ── */}
+              <div className="pb-5 border-b" style={{ borderColor: '#E5E5E2' }}>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Activity className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Contract Health Score</p>
+                </div>
+
+                {healthLoading && (
+                  <div className="flex items-center gap-2 py-4 text-xs" style={{ color: '#9CA3AF' }}>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analysing contract&hellip;
+                  </div>
+                )}
+                {healthError && (
+                  <div className="text-xs py-2" style={{ color: '#EF4444' }}>
+                    {healthError}
+                    <button onClick={() => { setHealthScore(null); setHealthError(null) }} className="ml-2 underline">Retry</button>
+                  </div>
+                )}
+                {healthScore && (
+                  <>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <p className="text-4xl font-bold font-display" style={{ color: healthScore.overall >= 7 ? '#2D6A4F' : healthScore.overall >= 5 ? '#CA8A04' : '#EF4444' }}>{healthScore.overall.toFixed(1)}</p>
+                      <p className="text-sm" style={{ color: '#9CA3AF' }}>/ 10</p>
+                    </div>
+                    {healthScore.topTip && (
+                      <div className="mb-3 px-3 py-2 text-xs border-l-2" style={{ borderColor: '#2D6A4F', backgroundColor: '#F0FDF4', color: '#1B4332' }}>
+                        <span className="font-semibold">Top tip:</span> {healthScore.topTip}
+                      </div>
+                    )}
+                    <ul className="space-y-1.5">
+                      {healthScore.categories.map((c) => {
+                        const colorMap = { strong: '#2D6A4F', moderate: '#CA8A04', weak: '#DC2626', missing: '#9CA3AF' } as const
+                        return (
+                          <li key={c.label} className="flex items-start gap-2 text-xs">
+                            <span className="inline-block w-2 h-2 mt-1 flex-shrink-0" style={{ backgroundColor: colorMap[c.score], borderRadius: '50%' }} />
+                            <div>
+                              <p className="font-semibold" style={{ color: '#1B4332' }}>{c.label} <span className="font-normal capitalize" style={{ color: colorMap[c.score] }}>· {c.score}</span></p>
+                              <p style={{ color: '#6B7280' }}>{c.detail}</p>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
+                )}
+              </div>
+
+              {/* ── Plain-English Summary ── */}
+              <div className="pb-5 border-b" style={{ borderColor: '#E5E5E2' }}>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <BookOpen className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Plain-English Summary</p>
+                </div>
+
+                {summaryLoading && (
+                  <div className="flex items-center gap-2 py-4 text-xs" style={{ color: '#9CA3AF' }}>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Summarising&hellip;
+                  </div>
+                )}
+                {summaryError && (
+                  <div className="text-xs py-2" style={{ color: '#EF4444' }}>
+                    {summaryError}
+                    <button onClick={() => { setSummary(null); setSummaryError(null) }} className="ml-2 underline">Retry</button>
+                  </div>
+                )}
+                {summary && (
+                  <div className="space-y-3 text-xs">
+                    {summary.headline && (
+                      <p className="font-semibold" style={{ color: '#1B4332' }}>{summary.headline}</p>
+                    )}
+                    {summary.whatYouAreAgreeing?.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1" style={{ color: '#2D6A4F' }}>You agree to:</p>
+                        <ul className="space-y-1 pl-3" style={{ color: '#374151' }}>
+                          {summary.whatYouAreAgreeing.map((b, i) => <li key={i} className="list-disc list-outside">{b}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {summary.whatTheyAreAgreeing?.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1" style={{ color: '#2D6A4F' }}>They agree to:</p>
+                        <ul className="space-y-1 pl-3" style={{ color: '#374151' }}>
+                          {summary.whatTheyAreAgreeing.map((b, i) => <li key={i} className="list-disc list-outside">{b}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {summary.keyRisks?.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <AlertTriangle className="w-3 h-3" style={{ color: '#DC2626' }} />
+                          <p className="font-semibold" style={{ color: '#DC2626' }}>Key risks:</p>
+                        </div>
+                        <ul className="space-y-1 pl-3" style={{ color: '#374151' }}>
+                          {summary.keyRisks.map((b, i) => <li key={i} className="list-disc list-outside">{b}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {summary.importantDates?.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <Calendar className="w-3 h-3" style={{ color: '#1B4332' }} />
+                          <p className="font-semibold" style={{ color: '#1B4332' }}>Important dates:</p>
+                        </div>
+                        <ul className="space-y-1 pl-3" style={{ color: '#374151' }}>
+                          {summary.importantDates.map((b, i) => <li key={i} className="list-disc list-outside">{b}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {summary.moneyTerms && (
+                      <div className="flex items-start gap-1 pt-1">
+                        <PoundSterling className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: '#1B4332' }} />
+                        <p style={{ color: '#374151' }}><span className="font-semibold">Money:</span> {summary.moneyTerms}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── AI Regenerate ── */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: '#2D6A4F' }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9CA3AF' }}>Refine with AI</p>
+                </div>
+                <p className="text-xs mb-2" style={{ color: '#6B7280' }}>
+                  Give feedback and regenerate the whole contract. Example: &ldquo;stronger IP protection&rdquo; or &ldquo;plain English&rdquo;.
+                </p>
+                <button
+                  onClick={() => { setShowRegenModal(true); setRegenError(null) }}
+                  className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold border transition-colors hover:bg-[#D8F3DC]"
+                  style={{ borderColor: '#2D6A4F', color: '#2D6A4F', backgroundColor: 'transparent' }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Regenerate with feedback
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Regenerate modal */}
+          <AnimatePresence>
+            {showRegenModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                onClick={() => !regenLoading && setShowRegenModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="w-full max-w-md border shadow-xl"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E5E2' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#E5E5E2' }}>
+                    <h3 className="font-display text-lg font-bold flex items-center gap-2" style={{ color: '#1B4332' }}>
+                      <Sparkles className="w-4 h-4" /> Regenerate contract
+                    </h3>
+                    <button onClick={() => !regenLoading && setShowRegenModal(false)} className="p-1 hover:opacity-70" style={{ color: '#9CA3AF' }}>
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <p className="text-xs" style={{ color: '#6B7280' }}>
+                      What should the AI change? One or two sentences work best.
+                    </p>
+                    <textarea
+                      value={regenFeedback}
+                      onChange={(e) => setRegenFeedback(e.target.value)}
+                      rows={4}
+                      placeholder="e.g. add stronger IP ownership clause; make termination terms clearer; simpler language throughout"
+                      className="w-full border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      style={{ borderColor: '#E5E5E2', backgroundColor: '#FAFAF8', color: '#1A1A1A' }}
+                      disabled={regenLoading}
+                    />
+                    {regenError && <p className="text-xs" style={{ color: '#EF4444' }}>{regenError}</p>}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => !regenLoading && setShowRegenModal(false)}
+                        className="flex-1 py-2 text-sm font-semibold border hover:bg-[#FAFAF8] transition-colors"
+                        style={{ borderColor: '#E5E5E2', color: '#6B7280' }}
+                        disabled={regenLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setRegenLoading(true)
+                          setRegenError(null)
+                          try {
+                            const res = await fetch('/api/regenerate', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ contractId: contract.id, feedback: regenFeedback.trim() || undefined }),
+                            })
+                            const data = await res.json()
+                            if (!res.ok) throw new Error(data.error ?? 'Regeneration failed')
+                            setEditableContent(data.content)
+                            setShowRegenModal(false)
+                            setRegenFeedback('')
+                            setHealthScore(null)
+                            setSummary(null)
+                          } catch (e) {
+                            setRegenError(e instanceof Error ? e.message : 'Something went wrong')
+                          } finally {
+                            setRegenLoading(false)
+                          }
+                        }}
+                        disabled={regenLoading}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                        style={{ backgroundColor: '#2D6A4F' }}
+                      >
+                        {regenLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Regenerating&hellip;</> : <><Sparkles className="w-3.5 h-3.5" /> Regenerate</>}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {sideTab === 'styling' && (
             <div className="space-y-5">
@@ -1375,9 +1644,18 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                         setSigError(`Please complete your ${missing.join(', ')} before resending.`)
                         return
                       }
+                      const dataUrl = sigState.getDataUrl?.()
+                      if (!dataUrl) {
+                        setSigError('Please provide your signature before resending.')
+                        return
+                      }
                       setSigError(null)
                       setCheckoutLoading(true)
-                      await onSend(contract.id, true)
+                      await onSend(contract.id, true, {
+                        dataUrl,
+                        printedName: sigState.name1.trim(),
+                        signedAt: new Date(sigState.date1).toISOString(),
+                      })
                       setCheckoutLoading(false)
                       setHasUnsavedChanges(false)
                       setIsEditMode(false)
@@ -1444,9 +1722,18 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                     setSigError(`Please complete your ${missing.join(', ')} before sending.`)
                     return
                   }
+                  const dataUrl = sigState.getDataUrl?.()
+                  if (!dataUrl) {
+                    setSigError('Please provide your signature before sending.')
+                    return
+                  }
                   setSigError(null)
                   setCheckoutLoading(true)
-                  await onSend(contract.id)
+                  await onSend(contract.id, false, {
+                    dataUrl,
+                    printedName: sigState.name1.trim(),
+                    signedAt: new Date(sigState.date1).toISOString(),
+                  })
                   setCheckoutLoading(false)
                 }}
                 disabled={checkoutLoading}
@@ -1464,7 +1751,7 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
             /* Non-subscriber — show payment options */
             <>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!senderReady) {
                     const missing: string[] = []
                     if (sigState.sig1Empty) missing.push('signature')
@@ -1473,14 +1760,59 @@ function ContractViewer({ contract, onBack, onCheckout, onSubscribe, onSend, onU
                     setSigError(`Please complete your ${missing.join(', ')} before sending.`)
                     return
                   }
+                  const dataUrl = sigState.getDataUrl?.()
+                  if (!dataUrl) {
+                    setSigError('Please provide your signature before sending.')
+                    return
+                  }
                   setSigError(null)
-                  setShowPaymentModal(true)
+                  setCheckoutLoading(true)
+                  try {
+                    // Persist signature BEFORE opening payment modal so it
+                    // survives the Stripe redirect.
+                    const intakeData = contract.intakeData ?? {}
+                    const saveRes = await fetch('/api/contract/sign-owner', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        contractId: contract.id,
+                        signatureDataUrl: dataUrl,
+                        printedName: sigState.name1.trim(),
+                        signedAt: new Date(sigState.date1).toISOString(),
+                        title: contract.title,
+                        content: contract.content,
+                        contractType: contract.typeId,
+                        docFont: contract.docStyle?.font,
+                        party1: {
+                          name: contract.party1,
+                          email: contract.party1Email,
+                          company: String(intakeData.yourBusinessName ?? ''),
+                          address: String(intakeData.yourAddress ?? ''),
+                        },
+                        party2: {
+                          name: contract.party2,
+                          email: contract.party2Email,
+                          company: String(intakeData.theirContactName ?? ''),
+                          address: String(intakeData.theirAddress ?? ''),
+                        },
+                      }),
+                    })
+                    if (!saveRes.ok && saveRes.status !== 409) {
+                      const data = await saveRes.json().catch(() => ({}))
+                      throw new Error(data.error ?? 'Could not save signature')
+                    }
+                    setShowPaymentModal(true)
+                  } catch (e) {
+                    setSigError(e instanceof Error ? e.message : 'Could not save signature')
+                  } finally {
+                    setCheckoutLoading(false)
+                  }
                 }}
                 disabled={checkoutLoading}
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#2D6A4F' }}
               >
-                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting&hellip;</> : <><ArrowRight className="w-4 h-4" /> Sign &amp; Send</>}
+                {checkoutLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Preparing&hellip;</> : <><ArrowRight className="w-4 h-4" /> Sign &amp; Send</>}
               </button>
               <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
                 {senderReady ? 'Ready to send' : 'Complete your signature below to send'}
@@ -1569,9 +1901,15 @@ export default function AppDashboard() {
   }
 
   // Send contract to client (Pro users or after payment)
-  const handleSendContract = async (contractId: string, resend = false) => {
+  const handleSendContract = async (
+    contractId: string,
+    resend = false,
+    senderSig?: { dataUrl: string; printedName: string; signedAt: string },
+  ) => {
     const contract = savedContracts.find(c => c.id === contractId)
     if (!contract) return
+
+    const intake = contract.intakeData ?? {}
 
     try {
       const res = await fetch('/api/send-contract', {
@@ -1582,12 +1920,17 @@ export default function AppDashboard() {
           resend,
           recipientEmail: contract.party2Email,
           recipientName: contract.party2,
+          recipientCompany: (intake.theirContactName as string) || '',
+          recipientAddress: (intake.theirAddress as string) || '',
           content: contract.content,
           title: contract.title,
           senderName: contract.party1,
           senderEmail: contract.party1Email,
+          senderCompany: (intake.yourBusinessName as string) || '',
+          senderAddress: (intake.yourAddress as string) || '',
           contractType: contract.typeId,
           docFont: contract.docStyle?.font,
+          senderSignature: senderSig,
         }),
       })
 

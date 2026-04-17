@@ -5,14 +5,21 @@ import { motion, AnimatePresence } from 'framer-motion'
 import SignatureCanvas from 'react-signature-canvas'
 import { Check, Loader2, FileText, Pen, Type } from 'lucide-react'
 
+interface Party {
+  name: string
+  email: string
+  company?: string
+  address?: string
+}
+
 interface Props {
   contractId: string
   token: string
   role: 'party1' | 'party2'
   title: string
   content: string
-  party1?: { name: string; email: string }
-  party2?: { name: string; email: string }
+  party1?: Party
+  party2?: Party
   party1Signed?: boolean
   party1PrintedName?: string
   party1SignedAt?: string
@@ -155,6 +162,24 @@ export default function SigningClient({ contractId, token, role, title, content,
           <div className="mb-4 flex items-center gap-3 px-4 py-3 border text-sm" style={{ backgroundColor: '#EDFAF2', borderColor: '#D8F3DC', color: '#1B4332' }}>
             <Check className="w-4 h-4" style={{ color: '#2D6A4F' }} strokeWidth={3} />
             <span><strong>{party1PrintedName ?? party1?.name}</strong> signed on {party1SignedAt ? new Date(party1SignedAt).toLocaleDateString('en-GB') : '—'}</span>
+          </div>
+        )}
+
+        {/* Party header — shows both Provider and Client details */}
+        {(party1 || party2) && (
+          <div className="grid md:grid-cols-2 gap-3 mb-5">
+            {[
+              { label: 'Provider', accent: '#1B4332', party: party1 },
+              { label: 'Client', accent: '#2D6A4F', party: party2 },
+            ].map(({ label, accent, party }) => (
+              <div key={label} className="bg-white border-l-4 border p-4 text-sm" style={{ borderColor: '#E5E5E2', borderLeftColor: accent }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#9CA3AF' }}>{label}</p>
+                {party?.name && <p className="font-semibold mb-0.5" style={{ color: '#1B4332' }}>{party.name}</p>}
+                {party?.company && <p className="text-xs mb-0.5" style={{ color: '#374151' }}>{party.company}</p>}
+                {party?.email && <p className="text-xs" style={{ color: '#6B7280' }}>{party.email}</p>}
+                {party?.address && <p className="text-xs whitespace-pre-line" style={{ color: '#6B7280' }}>{party.address}</p>}
+              </div>
+            ))}
           </div>
         )}
 

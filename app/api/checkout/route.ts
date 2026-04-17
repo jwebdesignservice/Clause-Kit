@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { setPaymentStatus } from '@/lib/payment-store';
+import { stripe } from '@/lib/stripe';
+import { setPaymentStatusAsync } from '@/lib/payment-store';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,13 +13,11 @@ export async function POST(req: NextRequest) {
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey || !stripeKey.startsWith('sk_')) {
-      return NextResponse.json({ 
-        error: 'Stripe not configured', 
-        detail: `Key present: ${!!stripeKey}` 
+      return NextResponse.json({
+        error: 'Stripe not configured',
+        detail: `Key present: ${!!stripeKey}`
       }, { status: 500 });
     }
-    
-    const stripe = new Stripe(stripeKey);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    setPaymentStatus(session.id, contractId, 'pending');
+    await setPaymentStatusAsync(session.id, contractId, 'pending');
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
   } catch (error) {

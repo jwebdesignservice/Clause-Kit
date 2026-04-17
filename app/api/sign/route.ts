@@ -19,6 +19,19 @@ export async function POST(req: NextRequest) {
   const contract = await getContractAsync(contractId)
   if (!contract) return NextResponse.json({ error: 'Contract not found' }, { status: 404 })
 
+  // Basic dataUrl validation — must be a PNG/JPG data URL
+  if (!signatureDataUrl.startsWith('data:image/')) {
+    return NextResponse.json({ error: 'Invalid signature format' }, { status: 400 })
+  }
+
+  // Guard: reject if this party has already signed (prevents overwrite)
+  if (role === 'party1' && contract.party1Signature) {
+    return NextResponse.json({ error: 'Contract has already been signed by the sender' }, { status: 409 })
+  }
+  if (role === 'party2' && contract.party2Signature) {
+    return NextResponse.json({ error: 'You have already signed this contract' }, { status: 409 })
+  }
+
   const sig = { dataUrl: signatureDataUrl, printedName, signedAt: new Date().toISOString(), ipAddress: ip }
 
   if (role === 'party1') {

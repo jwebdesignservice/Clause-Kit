@@ -28,8 +28,38 @@ export async function GET(req: NextRequest) {
     new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const pdfDoc = await PDFDocument.create()
-  const font     = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  // Map site font family → closest pdf-lib standard font
+  const pickFonts = (fam?: string): [StandardFonts, StandardFonts] => {
+    const f = (fam ?? '').toLowerCase()
+    if (f.includes('georgia') || f.includes('times') || f.includes('garamond') || f.includes('serif'))
+      return [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold]
+    if (f.includes('courier') || f.includes('mono'))
+      return [StandardFonts.Courier, StandardFonts.CourierBold]
+    return [StandardFonts.Helvetica, StandardFonts.HelveticaBold]
+  }
+  const [regular, bold] = pickFonts(contract.docFont)
+  const font     = await pdfDoc.embedFont(regular)
+  const fontBold = await pdfDoc.embedFont(bold)
+
+  // Pre-embed signature images so we can draw them in the signature boxes
+  const embedSig = async (dataUrl?: string) => {
+    if (!dataUrl || !dataUrl.startsWith('data:image/')) return null
+    try {
+      const base64 = dataUrl.split(',')[1]
+      if (!base64) return null
+      const bytes = Buffer.from(base64, 'base64')
+      if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) {
+        return await pdfDoc.embedJpg(bytes)
+      }
+      return await pdfDoc.embedPng(bytes)
+    } catch (e) {
+      console.error('Signature embed failed:', e)
+      return null
+    }
+  }
+  const party1SigImg = await embedSig(party1Sig?.dataUrl)
+  const party2SigImg = await embedSig(party2Sig?.dataUrl)
 
   const darkGreen = rgb(0.106, 0.263, 0.196) // #1B4332
   const midGreen  = rgb(0.176, 0.416, 0.310) // #2D6A4F
@@ -226,13 +256,15 @@ export async function GET(req: NextRequest) {
 
   const p1Fields = [
     { label: 'Name', value: p1?.name || '' },
-    { label: 'Email', value: p1?.email || '' },
-    { label: 'Address', value: p1?.address || '' },
+    { label: 'Company Name', value: p1?.company || '' },
+    { label: 'Business Email', value: p1?.email || '' },
+    { label: 'Business Address', value: p1?.address || '' },
   ].filter(f => f.value)
   const p2Fields = [
     { label: 'Name', value: p2?.name || '' },
-    { label: 'Email', value: p2?.email || '' },
-    { label: 'Address', value: p2?.address || '' },
+    { label: 'Company Name', value: p2?.company || '' },
+    { label: 'Business Email', value: p2?.email || '' },
+    { label: 'Business Address', value: p2?.address || '' },
   ].filter(f => f.value)
 
   const h1 = drawPartyCard(margin, 'Provider', darkGreen, p1Fields)
@@ -309,7 +341,8 @@ export async function GET(req: NextRequest) {
     printedName: string | undefined,
     signedAt: string | undefined,
     ip: string | undefined,
-    accentColor: ReturnType<typeof rgb>
+    accentColor: ReturnType<typeof rgb>,
+    sigImg: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null,
   ) => {
     const name = printedName || partyName || 'N/A'
     const date = signedAt
@@ -325,19 +358,38 @@ export async function GET(req: NextRequest) {
 
     page.drawText(s(`${role} - ${partyName || 'N/A'}`), { x: xStart + 8, y: y + 1, size: 9, font: fontBold, color: darkGreen })
 
+    // SIGNATURE label
+    page.drawText('SIGNATURE', { x: xStart + 8, y: y - 20, size: 7, font: fontBold, color: lightGray })
+
+    // Embed actual signature image, fit within box while preserving aspect ratio
+    if (sigImg) {
+      const maxW = colW - 16
+      const maxH = 28
+      const scale = Math.min(maxW / sigImg.width, maxH / sigImg.height, 1)
+      const drawW = sigImg.width * scale
+      const drawH = sigImg.height * scale
+      page.drawImage(sigImg, {
+        x: xStart + 8,
+        y: y - 30 - drawH + 4, // position under label
+        width: drawW,
+        height: drawH,
+      })
+    } else {
+      page.drawText('[Digitally signed]', { x: xStart + 8, y: y - 30, size: 9, font, color: midGreen })
+    }
+
     const row = (label: string, value: string, dy: number, valueColor = gray) => {
       page.drawText(label, { x: xStart + 8, y: y - dy,     size: 7, font: fontBold, color: lightGray })
       page.drawText(s(value), { x: xStart + 8, y: y - dy - 10, size: 9, font, color: valueColor })
     }
 
-    row('SIGNATURE', '[Digitally signed]', 20, midGreen)
     row('FULL NAME',  name,                50)
     row('DATE',       date,                80)
     page.drawText(`IP: ${ip || 'N/A'}`, { x: xStart + 8, y: y - 108, size: 7, font, color: lightGray })
   }
 
-  drawSigBox(margin,           'Provider', p1?.name, party1Sig?.printedName, party1Sig?.signedAt || contract.createdAt, party1Sig?.ipAddress, darkGreen)
-  drawSigBox(margin + colW + 12, 'Client', p2?.name, party2Sig?.printedName, party2Sig?.signedAt,                       party2Sig?.ipAddress, midGreen)
+  drawSigBox(margin,           'Provider', p1?.name, party1Sig?.printedName, party1Sig?.signedAt || contract.createdAt, party1Sig?.ipAddress, darkGreen, party1SigImg)
+  drawSigBox(margin + colW + 12, 'Client', p2?.name, party2Sig?.printedName, party2Sig?.signedAt,                       party2Sig?.ipAddress, midGreen,  party2SigImg)
   y -= sigH + 16
 
   // ── 6. Footer ────────────────────────────────────────────────────────────────

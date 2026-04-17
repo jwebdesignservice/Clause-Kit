@@ -36,8 +36,38 @@ export async function GET(req: NextRequest) {
 
   // Generate PDF
   const pdfDoc = await PDFDocument.create();
-  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Map docFont family → closest pdf-lib standard font
+  const pickFonts = (fam?: string): [StandardFonts, StandardFonts] => {
+    const f = (fam ?? '').toLowerCase();
+    if (f.includes('georgia') || f.includes('times') || f.includes('garamond') || f.includes('serif'))
+      return [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold];
+    if (f.includes('courier') || f.includes('mono'))
+      return [StandardFonts.Courier, StandardFonts.CourierBold];
+    return [StandardFonts.Helvetica, StandardFonts.HelveticaBold];
+  };
+  const [regularFontName, boldFontName] = pickFonts(record.docFont);
+  const regularFont = await pdfDoc.embedFont(regularFontName);
+  const boldFont = await pdfDoc.embedFont(boldFontName);
+
+  // Embed signature images if the record has them — used at the Acceptance section
+  const embedSig = async (dataUrl?: string) => {
+    if (!dataUrl || !dataUrl.startsWith('data:image/')) return null;
+    try {
+      const base64 = dataUrl.split(',')[1];
+      if (!base64) return null;
+      const bytes = Buffer.from(base64, 'base64');
+      if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) {
+        return await pdfDoc.embedJpg(bytes);
+      }
+      return await pdfDoc.embedPng(bytes);
+    } catch (e) {
+      console.error('PDF signature embed failed:', e);
+      return null;
+    }
+  };
+  const party1SigImg = await embedSig(record.party1Signature?.dataUrl);
+  const party2SigImg = await embedSig(record.party2Signature?.dataUrl);
 
   const PAGE_WIDTH = 595;
   const PAGE_HEIGHT = 842;
@@ -146,6 +176,100 @@ export async function GET(req: NextRequest) {
 
   y -= 12;
 
+  // ── Party cards (Provider / Client) ──────────────────────────────────────
+  const p1 = record.party1;
+  const p2 = record.party2;
+  if (p1 || p2) {
+    const cardW = (CONTENT_WIDTH - 10) / 2;
+    const borderGray = rgb(0.898, 0.898, 0.886);
+    const lightGray = rgb(0.612, 0.639, 0.686);
+    const darkGreen = rgb(0.106, 0.263, 0.196);
+    const midGreen = rgb(0.176, 0.416, 0.310);
+
+    const drawCard = (
+      xStart: number,
+      role: string,
+      accent: ReturnType<typeof rgb>,
+      fields: { label: string; value: string }[],
+    ): number => {
+      const rowH = 16;
+      const cardH = 22 + fields.length * rowH + 8;
+      if (y - cardH < FOOTER_HEIGHT + 20) {
+        page = addPage();
+        pageNum++;
+        y = PAGE_HEIGHT - HEADER_HEIGHT - 32;
+      }
+      page.drawRectangle({
+        x: xStart,
+        y: y - cardH + 18,
+        width: cardW,
+        height: cardH,
+        borderColor: borderGray,
+        borderWidth: 1,
+      });
+      page.drawRectangle({
+        x: xStart,
+        y: y - cardH + 18,
+        width: 4,
+        height: cardH,
+        color: accent,
+      });
+      page.drawRectangle({
+        x: xStart + 4,
+        y: y - cardH + 18,
+        width: cardW - 4,
+        height: 18,
+        color: rgb(0.98, 0.98, 0.976),
+      });
+      page.drawText(role.toUpperCase(), {
+        x: xStart + 10,
+        y: y + 1,
+        size: 8,
+        font: boldFont,
+        color: lightGray,
+      });
+      let cy = y - 18;
+      for (const { label, value } of fields) {
+        if (!value) continue;
+        page.drawText(label.toUpperCase(), {
+          x: xStart + 10,
+          y: cy,
+          size: 7,
+          font: boldFont,
+          color: lightGray,
+        });
+        cy -= 11;
+        const safe = value.replace(/[^\x00-\xFF]/g, '-');
+        page.drawText(safe, {
+          x: xStart + 10,
+          y: cy,
+          size: 9,
+          font: regularFont,
+          color: rgb(0.102, 0.102, 0.102),
+        });
+        cy -= rowH - 11 + 5;
+      }
+      return cardH;
+    };
+
+    const p1Fields = [
+      { label: 'Name', value: p1?.name || '' },
+      { label: 'Company Name', value: p1?.company || '' },
+      { label: 'Business Email', value: p1?.email || '' },
+      { label: 'Business Address', value: p1?.address || '' },
+    ].filter(f => f.value);
+    const p2Fields = [
+      { label: 'Name', value: p2?.name || '' },
+      { label: 'Company Name', value: p2?.company || '' },
+      { label: 'Business Email', value: p2?.email || '' },
+      { label: 'Business Address', value: p2?.address || '' },
+    ].filter(f => f.value);
+
+    const h1 = drawCard(MARGIN, 'Provider', darkGreen, p1Fields);
+    const h2 = drawCard(MARGIN + cardW + 10, 'Client', midGreen, p2Fields);
+    y -= Math.max(h1, h2) + 20;
+  }
+
   // Body content
   for (const rawLine of rawLines) {
     const trimmed = rawLine.trim();
@@ -192,6 +316,160 @@ export async function GET(req: NextRequest) {
       });
       y -= fontSize + 4;
     }
+  }
+
+  // ── Signature block at end (shows embedded owner signature) ──────────────
+  if (record.party1Signature || record.party2Signature) {
+    const sigH = 120;
+    const colW = (CONTENT_WIDTH - 12) / 2;
+    const darkGreen = rgb(0.106, 0.263, 0.196);
+    const midGreen = rgb(0.176, 0.416, 0.310);
+    const gray = rgb(0.216, 0.255, 0.318);
+    const lightGray = rgb(0.612, 0.639, 0.686);
+    const borderGray = rgb(0.898, 0.898, 0.886);
+
+    // Ensure enough vertical space for the section
+    if (y - (sigH + 80) < FOOTER_HEIGHT + 20) {
+      page.drawText(`Page ${pageNum}`, {
+        x: PAGE_WIDTH - MARGIN - 30,
+        y: 14,
+        font: regularFont,
+        size: 8,
+        color: rgb(0.55, 0.55, 0.6),
+      });
+      page = addPage();
+      pageNum++;
+      y = PAGE_HEIGHT - HEADER_HEIGHT - 32;
+    }
+
+    y -= 24;
+    page.drawLine({
+      start: { x: MARGIN, y },
+      end: { x: MARGIN + CONTENT_WIDTH, y },
+      thickness: 2,
+      color: darkGreen,
+    });
+    y -= 18;
+
+    page.drawText('ACCEPTANCE & SIGNATURES', {
+      x: MARGIN,
+      y,
+      size: 12,
+      font: boldFont,
+      color: darkGreen,
+    });
+    y -= 20;
+
+    const drawSigBox = (
+      xStart: number,
+      role: string,
+      partyName: string | undefined,
+      printedName: string | undefined,
+      signedAt: string | undefined,
+      ip: string | undefined,
+      accent: ReturnType<typeof rgb>,
+      sigImg: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null,
+    ) => {
+      page.drawRectangle({
+        x: xStart,
+        y: y - sigH + 18,
+        width: colW,
+        height: sigH,
+        borderColor: accent,
+        borderWidth: 1,
+      });
+      page.drawRectangle({
+        x: xStart,
+        y: y - sigH + 18 + sigH - 18,
+        width: colW,
+        height: 18,
+        color: rgb(0.933, 0.973, 0.949),
+      });
+
+      const roleLabel = `${role} - ${(partyName || 'N/A').replace(/[^\x00-\xFF]/g, '-')}`;
+      page.drawText(roleLabel, {
+        x: xStart + 8,
+        y: y + 1,
+        size: 9,
+        font: boldFont,
+        color: darkGreen,
+      });
+
+      page.drawText('SIGNATURE', {
+        x: xStart + 8,
+        y: y - 20,
+        size: 7,
+        font: boldFont,
+        color: lightGray,
+      });
+
+      if (sigImg) {
+        const maxW = colW - 16;
+        const maxH = 30;
+        const scale = Math.min(maxW / sigImg.width, maxH / sigImg.height, 1);
+        const drawW = sigImg.width * scale;
+        const drawH = sigImg.height * scale;
+        page.drawImage(sigImg, {
+          x: xStart + 8,
+          y: y - 30 - drawH + 6,
+          width: drawW,
+          height: drawH,
+        });
+      } else {
+        page.drawText('Pending signature', {
+          x: xStart + 8,
+          y: y - 30,
+          size: 9,
+          font: regularFont,
+          color: lightGray,
+        });
+      }
+
+      const date = signedAt
+        ? new Date(signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        : 'Pending';
+
+      page.drawText('FULL NAME', { x: xStart + 8, y: y - 55, size: 7, font: boldFont, color: lightGray });
+      page.drawText((printedName || partyName || 'Pending').replace(/[^\x00-\xFF]/g, '-'), {
+        x: xStart + 8, y: y - 65, size: 9, font: regularFont, color: gray,
+      });
+      page.drawText('DATE', { x: xStart + 8, y: y - 80, size: 7, font: boldFont, color: lightGray });
+      page.drawText(date, { x: xStart + 8, y: y - 90, size: 9, font: regularFont, color: gray });
+      if (ip) {
+        page.drawText(`IP: ${ip}`, {
+          x: xStart + 8, y: y - 108, size: 7, font: regularFont, color: lightGray,
+        });
+      }
+    };
+
+    drawSigBox(
+      MARGIN,
+      'Provider',
+      record.party1?.name,
+      record.party1Signature?.printedName,
+      record.party1Signature?.signedAt,
+      record.party1Signature?.ipAddress,
+      darkGreen,
+      party1SigImg,
+    );
+    drawSigBox(
+      MARGIN + colW + 12,
+      'Client',
+      record.party2?.name,
+      record.party2Signature?.printedName,
+      record.party2Signature?.signedAt,
+      record.party2Signature?.ipAddress,
+      midGreen,
+      party2SigImg,
+    );
+
+    y -= sigH + 20;
+    page.drawLine({
+      start: { x: MARGIN, y },
+      end: { x: MARGIN + CONTENT_WIDTH, y },
+      thickness: 0.5,
+      color: borderGray,
+    });
   }
 
   // Page number on last page

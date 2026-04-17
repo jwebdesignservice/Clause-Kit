@@ -13,12 +13,17 @@ export async function POST(req: NextRequest) {
       resend: isResend,
       recipientEmail,
       recipientName,
+      recipientCompany,
+      recipientAddress,
       title,
       content,
       senderName,
       senderEmail,
+      senderCompany,
+      senderAddress,
       contractType,
       docFont,
+      senderSignature,
     } = body;
 
     if (!contractId || !recipientEmail) {
@@ -28,8 +33,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save or update contract in server store
+    // Basic email format validation
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRx.test(recipientEmail)) {
+      return NextResponse.json({ error: 'Invalid recipient email' }, { status: 400 });
+    }
+    if (senderEmail && !emailRx.test(senderEmail)) {
+      return NextResponse.json({ error: 'Invalid sender email' }, { status: 400 });
+    }
+
+    // Load existing so we can merge instead of clobber
     const existingContract = await getContractAsync(contractId);
+
+    // Build merged party info — prefer new fields, fall back to existing, fall back to ''
+    const mergedParty1 = {
+      name: senderName || existingContract?.party1?.name || '',
+      email: senderEmail || existingContract?.party1?.email || '',
+      address: senderAddress || existingContract?.party1?.address || '',
+      company: senderCompany || existingContract?.party1?.company || '',
+    };
+    const mergedParty2 = {
+      name: recipientName || existingContract?.party2?.name || '',
+      email: recipientEmail || existingContract?.party2?.email || '',
+      address: recipientAddress || existingContract?.party2?.address || '',
+      company: recipientCompany || existingContract?.party2?.company || '',
+    };
+
     const contractRecord: ContractRecord = existingContract ?? {
       id: contractId,
       contractType: contractType || 'unknown',
@@ -37,20 +66,35 @@ export async function POST(req: NextRequest) {
       content: content || '',
       createdAt: new Date().toISOString(),
       status: 'sent',
-      party1: senderName ? { name: senderName, email: senderEmail || '', address: '' } : undefined,
-      party2: { name: recipientName || '', email: recipientEmail, address: '' },
     };
-    
-    // Update content if resending and clear old signature
+
+    contractRecord.party1 = mergedParty1.name || mergedParty1.email ? mergedParty1 : undefined;
+    contractRecord.party2 = mergedParty2;
+
+    // Persist sender's signature (P0.1) — validated as a data URL
+    if (senderSignature?.dataUrl && typeof senderSignature.dataUrl === 'string' && senderSignature.dataUrl.startsWith('data:image/')) {
+      contractRecord.party1Signature = {
+        dataUrl: senderSignature.dataUrl,
+        printedName: senderSignature.printedName || mergedParty1.name,
+        signedAt: senderSignature.signedAt || new Date().toISOString(),
+        ipAddress: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown',
+      };
+    }
+
+    // Update content if resending and clear old party2 signature
     if (isResend) {
       if (content) contractRecord.content = content;
-      // Clear party2 signature so they can sign again
       contractRecord.party2Signature = undefined;
+    } else if (content && !contractRecord.content) {
+      contractRecord.content = content;
     }
+    if (title && !contractRecord.title) contractRecord.title = title;
+    if (contractType && !contractRecord.contractType) contractRecord.contractType = contractType;
+
     contractRecord.status = 'sent';
     contractRecord.party2SigningToken = createSigningToken(contractId, 'party2', recipientEmail);
     if (docFont) contractRecord.docFont = docFont;
-    
+
     await saveContractAsync(contractRecord);
 
     // Generate signing token for party2 (client)
